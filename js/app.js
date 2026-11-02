@@ -5,7 +5,7 @@
     Gen = window.Gen,
     Drills = window.Drills,
     Audio = window.OrganAudio;
-  const { LEVELS, DAILY, RESOURCES, REQUIREMENTS } = window.AGO_LEVELS;
+  const { LEVELS, DAILY, RESOURCES, REQUIREMENTS, LINKS } = window.AGO_LEVELS;
   const FACTS = window.AGO_FACTS || [];
   const QUIZ_LEN = 12;
 
@@ -56,6 +56,13 @@
   // citation line shown under every answer and exercise
   const cite = (label, text, extra) =>
     h("p", { class: "cite" }, h("span", { class: "cite-l" }, label + ": "), text, extra || null);
+  const extLink = (url, label) => h("a", { href: url, target: "_blank", rel: "noopener" }, label);
+  // the AGO's pages for a level: its resources page (archived site), any current exam page, and the shared links
+  function agoLinks(L) {
+    return [
+      { label: L.name + " resources page (archived AGO site; may not list the latest exams)", url: L.agoPage },
+    ].concat(LINKS[L.id] || [], LINKS.common);
+  }
   const reqLink = () => h("a", { href: REQUIREMENTS.url, target: "_blank", rel: "noopener" }, REQUIREMENTS.title);
   function citeQ(q) {
     const out = [];
@@ -653,6 +660,16 @@
         ),
       ),
     );
+    main.append(
+      h(
+        "p",
+        { class: "ago-links" },
+        h("span", { class: "cite-l" }, "AGO pages: "),
+        agoLinks(L)
+          .slice(0, 3 + (LINKS[L.id] || []).length)
+          .flatMap((x, i) => [i ? " · " : "", extLink(x.url, x.label)]),
+      ),
+    );
     const mockBtn = h(
       "button",
       {
@@ -819,6 +836,10 @@
         grid,
       ),
     );
+
+    const links = h("ul", { class: "res" });
+    agoLinks(L).forEach((x) => links.append(h("li", {}, extLink(x.url, x.label))));
+    main.append(h("section", { class: "plan-sec" }, h("h3", {}, "AGO pages"), links));
 
     const res = h("ul", { class: "res" });
     (RESOURCES[level] || []).concat(RESOURCES.common).forEach((x) => res.append(h("li", {}, x)));

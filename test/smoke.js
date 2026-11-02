@@ -58,6 +58,10 @@ for (const [L, mix] of Object.entries(AGO_LEVELS.DAILY)) {
   for (const [d] of mix.drills) if (!D[d]) problems.push("DAILY." + L + " uses drill " + d + ", which doesn't exist");
 }
 
+// every level links its AGO resources page
+for (const L of AGO_LEVELS.LEVELS)
+  if (!/^https:\/\//.test(L.agoPage || "")) problems.push(L.id + " has no agoPage link");
+
 // every generator cites the rules it applies
 for (const k of Object.keys(G)) if (!Gen.SRC[k]) problems.push("generator " + k + " has no entry in Gen.SRC");
 

@@ -191,3 +191,5 @@ h3 { font: 700 var(--s1)/1.3 var(--f-body); margin: 0 0 12px; text-wrap: balance
 .cite { margin: 6px 0 0; font: 400 var(--s-1)/1.4 var(--f-ui); color: var(--muted); }
 .cite-l { font-weight: 600; letter-spacing: .02em; }
 .cite a { color: inherit; }
+.ago-links { margin: 10px 0 0; font: 400 var(--s-1)/1.6 var(--f-ui); color: var(--muted); max-width: 80ch; }
+.ago-links a { color: inherit; }
