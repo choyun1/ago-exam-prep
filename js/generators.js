@@ -124,6 +124,11 @@
     return events.map((v) => v.map((e) => Object.assign({}, e, { n: e.n ? T.transposeNote(e.n, ds, semis) : null })));
   }
 
+  // tempo marking as shown to the player: audio tempos are quarter-note speeds, so 6/8 shows the dotted quarter
+  function tempoMark(meter, tempo) {
+    return meter === "6/8" ? "♩. = " + Math.round((tempo * 2) / 3) : "♩ = " + tempo;
+  }
+
   // events -> audio notes
   function audioFrom(eventsByVoice, tempo, which) {
     const spb = 60 / (tempo || 80) / 2; // seconds per eighth
@@ -231,7 +236,9 @@
         outs.map((x) => x.label).join(", then ") +
         ". " +
         (o.pedal ? "Use pedals." : "Pedal optional.") +
-        " You may play it once in the original key first.",
+        (o.original === false
+          ? " Don't play it in the original key first."
+          : " You may play it once in the original key first."),
       scores: [{ abc: render(key, meter, grandStaff(ev)), caption: "Original: " + T.keyShort(key) }],
       solution: { text: outs.map((x) => x.label + ": " + T.keyShort(x.k)).join("\n"), scores: sol },
       audio: audioFrom(ev, 76),
@@ -324,7 +331,7 @@
   G.dictation = function (r, o) {
     // C9 (two-part missing tones), A10 (melody + two-part), F10 (four-part + two-part), Ch3 (two-part)
     const key = randomKey(r, { maxAcc: 3, minorP: 0.35 });
-    const meter = r.pick(["4/4", "3/4"]);
+    const meter = r.pick(["4/4", "3/4", "6/8"]); // 6/8 appeared in the 2024 AAGO two-part test
     const p = passage(r, key, planFor(r, o.phrases || 1), meter);
     const ev = H.toEvents(p, decor(o.embellish == null ? 0.4 : o.embellish, 0.15), r);
     const tempo = o.tempo || 72;
@@ -363,8 +370,8 @@
       title: "Aural dictation",
       prompt:
         (o.prompt || "Notate what you hear.") +
-        " Play the tonic chord, then the excerpt four times, with 45 seconds between playings. ♩ = " +
-        tempo +
+        " Play the tonic chord, then the excerpt four times, with 45 seconds between playings. " +
+        tempoMark(meter, tempo) +
         ".",
       scores: [{ abc: render(key, meter, staves) }],
       audio: audioFrom(ev, tempo, which),
@@ -427,15 +434,23 @@
   };
 
   // ---- aural perception (auto-graded) ----
+  // AAGO A11 / CAGO C10 ask about "compositional devices, cadence types, harmonies" from a melodic or skeleton score.
+  // Here: the soprano line is printed as the melodic score, with a numbered spot for the harmony question.
+  const SUSP_NAMES = { 4: "4–3", 7: "7–6", 9: "9–8" };
   G.auralPerception = function (r) {
     const key = randomKey(r, { maxAcc: 3, minorP: 0.4 });
-    const meter = r.pick(["4/4", "3/4"]);
-    const plan = planFor(r, 2);
-    const p = passage(r, key, plan, meter);
-    const ev = H.toEvents(p, decor(0.35, 0.3), r);
+    let meter, p, ev, kinds;
+    // prefer a passage whose suspensions are all of one kind, so "which suspension?" has one answer
+    for (let tries = 0; tries < 12; tries++) {
+      meter = r.pick(["4/4", "3/4", "6/8"]);
+      p = passage(r, key, planFor(r, 2), meter);
+      ev = H.toEvents(p, decor(0.3, 0.5), r);
+      kinds = new Set(Object.values(ev.suspensions).map((x) => SUSP_NAMES[x.sus]));
+      if (kinds.size === 1) break;
+    }
     const first = p.phrases[0].cadence;
     const qs = [
-      { q: "What is the meter?", choices: ["4/4", "3/4"], answer: meter === "4/4" ? 0 : 1 },
+      { q: "What is the meter?", choices: ["4/4", "3/4", "6/8"], answer: ["4/4", "3/4", "6/8"].indexOf(meter) },
       { q: "Mode of the excerpt?", choices: ["Major", "Minor"], answer: key.mode === "major" ? 0 : 1 },
       {
         q: "Cadence at the end of the first phrase?",
@@ -443,11 +458,54 @@
         answer: ["PAC", "IAC", "HC", "DC"].indexOf(first),
       },
     ];
+    if (kinds.size <= 1) {
+      const correct = kinds.size ? [...kinds][0] : "No suspension";
+      const choices = ["4–3", "7–6", "9–8", "No suspension"];
+      qs.push({ q: "Which suspension do you hear?", choices, answer: choices.indexOf(correct) });
+    }
+    // harmony at a numbered downbeat: a bar start where a chord begins and the soprano attacks
+    const barLen = meter === "4/4" ? 8 : 6;
+    const starts = [];
+    let t = 0;
+    p.chords.forEach((c, i) => {
+      starts.push({ t, i });
+      t += c.dur;
+    });
+    let pos = 0;
+    const sopAt = {};
+    ev[3].forEach((e, k) => {
+      sopAt[pos] = k;
+      pos += e.dur;
+    });
+    const spots = starts.filter((x) => x.t > 0 && x.t % barLen === 0 && sopAt[x.t] != null && !p.chords[x.i].fermata);
+    const sop = ev[3].map((e) => Object.assign({}, e));
+    if (spots.length) {
+      const spot = r.pick(spots);
+      const ch = p.chords[spot.i];
+      sop[sopAt[spot.t]].annAbove = "1.";
+      const pool = ["I", "ii", "ii6", "IV", "V", "V7", "vi", "I6", "V6", "I64", "vii°6"].map((x) =>
+        H.modeSym(x, ch.key.mode),
+      );
+      const others = r.shuffle(pool.filter((x) => x !== ch.sym)).slice(0, 3);
+      const choices = r.shuffle([ch.sym].concat(others));
+      qs.push({
+        q:
+          "What is the harmony at 1. (bar " +
+          (spot.t / barLen + 1) +
+          ")" +
+          (ch.key !== key ? " (in " + T.keyShort(ch.key) + ")" : "") +
+          "?",
+        choices,
+        answer: choices.indexOf(ch.sym),
+      });
+    }
     return {
       title: "Aural perception",
       prompt:
-        "Listen three or four times, then answer. (Generated chorale texture; the exam uses recorded organ music.)",
-      scores: [],
+        "Listen four times with the melodic score below (the top part), then answer. Generated chorale texture; the exam uses recorded organ music.",
+      scores: [
+        { abc: render(key, meter, [{ clef: "treble", voices: [{ id: "S", events: sop }] }]), caption: "Melodic score" },
+      ],
       audio: audioFrom(ev, 76),
       playTonic: null,
       quiz: qs,
@@ -630,6 +688,7 @@
     "ITALIAN HYMN",
     "IN BABILONE",
     "ABBOT'S LEIGH",
+    "WINCHESTER OLD",
   ];
   const CHANTS = [
     ["Veni Creator Spiritus", "mode 8"],
@@ -644,6 +703,7 @@
     ["Regina caeli (simple tone)", "mode 6"],
     ["Rorate caeli", "mode 1"],
     ["Lux aeterna", "mode 8"],
+    ["Ave Regina caelorum", "mode 6"],
   ];
 
   G.improv = function (r, o) {
@@ -781,19 +841,47 @@
   };
 
   // ---- composition starters ----
+  // registrations and tempo words for the A12 opening, in the manner of recent papers (e.g. Fonds 8′ / Ped. 16′, 8′)
+  const COMPOSITION_REGS = [
+    ["Fonds 8′", "16′, 8′"],
+    ["Flûte 8′, 4′", "Bourdon 16′, 8′"],
+    ["Principal 8′, 4′", "16′, 8′, 4′"],
+    ["Strings 8′ (Swell, box closed)", "soft 16′, 8′"],
+  ];
   G.compositionStart = function (r, o) {
-    // AAGO A12: complete a passage
+    // AAGO A12: complete a given organ passage
     const key = randomKey(r, { maxAcc: 3 });
-    const meter = r.pick(["4/4", "3/4"]);
+    const meter = r.pick(["4/4", "3/4", "6/8"]);
     const p = passage(r, key, [{ cadence: "HC" }], meter);
     const ev = H.toEvents(p, decor(0.6, 0.35), r);
+    const [man, ped] = r.pick(COMPOSITION_REGS);
+    const tempo = r.pick(["Andante", "Moderato", "Allegretto", "Adagio"]);
+    // organ score: right hand (soprano and alto), left hand (tenor), pedal (bass)
+    const staves = [
+      {
+        clef: "treble",
+        name: "Man.",
+        voices: [
+          { id: "S", events: ev[3], stem: "up" },
+          { id: "A", events: ev[2], stem: "down" },
+        ],
+      },
+      { clef: "bass", voices: [{ id: "T", events: ev[1] }] },
+      { clef: "bass", name: "Ped.", voices: [{ id: "P", events: ev[0] }] },
+    ];
     return {
       title: "Composition",
       prompt:
-        "Continue and conclude this organ passage in about 16 measures. Keep the style and texture consistent and write idiomatically for the instrument; develop the opening motive and cadence clearly at the end.",
-      scores: [{ abc: render(key, meter, grandStaff(ev)), caption: "Given opening" }],
+        "Continue and conclude this organ passage in about 16 measures (" +
+        tempo +
+        "; manuals " +
+        man +
+        ", pedal " +
+        ped +
+        "). Keep the style and texture consistent and write idiomatically for the instrument; develop the opening motive and cadence clearly at the end. You don't need to copy out the given measures.",
+      scores: [{ abc: render(key, meter, staves, { organ: true, noBrace: true }), caption: "Given opening" }],
       solution: {
-        text: "Self-check: does it modulate and return? Is the motive developed (sequence, inversion, fragmentation)? Are the cadences clear? Is the texture playable by two hands and feet?",
+        text: "Self-check: does it modulate and return? Is the motive developed (sequence, inversion, fragmentation)? Are the cadences clear? Is the texture playable by two hands and feet, and does the pedal line suit the registration?",
       },
     };
   };
@@ -871,6 +959,10 @@
     'Schubert, "Heidenröslein", D. 257',
     "Haydn, Piano Sonata in C major, Hob. XVI:35, first movement",
     "Mendelssohn, Organ Sonata No. 2, Grave–Adagio",
+    // Recent AAGO papers have used orchestral scores with transposing instruments.
+    "Haydn, Symphony No. 104 in D major, third movement (horns and trumpets in D)",
+    "Mozart, Symphony No. 40 in G minor, K. 550, third movement (horns in G and B♭)",
+    "Beethoven, Symphony No. 1 in C major, Op. 21, third movement (horns in C)",
   ];
   // ChM Ch4 is the analysis of a choral work. All public domain in the U.S.; scores on IMSLP or CPDL.
   const CHORAL_PIECES = [
@@ -925,7 +1017,8 @@
         "): " +
         piece +
         ". Pretend you don't know the composer; answer as on the exam:\n" +
-        qs.map((q, i) => i + 1 + ". " + q).join("\n"),
+        qs.map((q, i) => i + 1 + ". " + q).join("\n") +
+        (/Symphony/.test(piece) ? "\nRead the transposing instruments at sounding pitch when you name chords." : ""),
       scores: [],
       solution: {
         text:

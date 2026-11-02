@@ -16,7 +16,7 @@
       pass: "More than 50% on every item and more than 70% overall.",
       sections: [{ name: "Service (one sitting)", items: [
         { id: "S1", name: "Prelude repertoire", pts: 20, kind: "rep", guide: "One piece from List A, B, or C, polished. Record yourself weekly and listen the next day for steadiness and articulation." },
-        { id: "S2", name: "Opening hymn in two transpositions", pts: 20, kind: "keyboard", gen: ["transposition", { intervals: iv.M2, count: 2, phrases: 2, embellish: 0 }], guide: "The booklet names the two keys. Practice each stanza in both keys until you can lead at tempo with no hesitation. Think in scale degrees and intervals, not new note names." },
+        { id: "S2", name: "Opening hymn in two transpositions", pts: 20, kind: "keyboard", gen: ["transposition", { intervals: iv.M2, count: 2, phrases: 2, embellish: 0, original: false }], guide: "The booklet names the two keys. Practice each stanza in both keys until you can lead at tempo with no hesitation. Think in scale degrees and intervals, not new note names." },
         { id: "S3", name: "Psalm with singer", pts: 20, kind: "service", guide: "Accompany refrain and all verses as for a congregation. Rehearse with your actual singer; breathe with the text." },
         { id: "S4", name: "Anthem accompaniment", pts: 20, kind: "service", guide: "Play vocal parts where the accompaniment is tacet. Mark registration changes and cue points in your copy." },
         { id: "S5", name: "Middle hymn", pts: 20, kind: "service", guide: "Introduction plus three stanzas, pedal in at least one, contrast between stanzas, and the booklet harmonization for stanza 1." },
@@ -38,7 +38,7 @@
           { id: "C4", name: "Two hymns", pts: 20, kind: "service", guide: "Introduction plus three stanzas each, pedal in at least one stanza, stanza 1 in the booklet harmonization." },
           { id: "C5", name: "Trio sight-reading", pts: 20, kind: "keyboard", gen: ["sightReadTrio", {}], guide: "Three staves at the marked tempo. Read trio sonata slow movements and Orgelbüchlein-level chorale preludes daily for 10 minutes." },
           { id: "C6", name: "Harmonization", pts: 20, kind: "keyboard", gen: ["harmonize", {}], guide: "Simple hymn tune, plainsong, or folk-style tune. Decide cadences first, then fill in the bass, then the inner voices." },
-          { id: "C7", name: "Transposition (≤ M2)", pts: 20, kind: "keyboard", gen: ["transposition", { intervals: iv.M2, count: 1, phrases: 2 }], guide: "Four-part homophonic, up to 8 measures, at a steady moderate pace. Practice daily from a hymnal in random keys." },
+          { id: "C7", name: "Transposition (≤ M2)", pts: 20, kind: "keyboard", gen: ["transposition", { intervals: iv.M2, count: 1, phrases: 2, original: false }], guide: "Four-part homophonic, up to 8 measures, at a steady moderate pace. Practice daily from a hymnal in random keys." },
           { id: "C8", name: "Improvisation", pts: 20, kind: "keyboard", gen: ["improv", { kind: "phrases" }], alt: [["improv", { kind: "bridge" }]], guide: "Choose: 8 measures in two phrases with modulation; 16 measures on a given motif; or a 30-second hymn bridge between keys. 30 minutes of piano preparation covers C6–C8." }
         ] },
         { name: "Section 2: Written (2 hours)", items: [

@@ -17,7 +17,7 @@ function fail(kind, msg) {
 // ---- 1. Every generated score: no double sharps/flats, and every bar adds up to the meter ----
 function checkABC(abc, where) {
   const meter = (/^M:(.*)$/m.exec(abc) || [])[1];
-  const barLen = meter === "3/4" ? 6 : meter === "4/4" ? 8 : null;
+  const barLen = meter === "3/4" || meter === "6/8" ? 6 : meter === "4/4" ? 8 : null;
   const km = /^K:([A-G])([#b]?)(m?)$/m.exec(abc);
   const sig = T.keySig(T.mkKey(km[1], km[2] === "#" ? 1 : km[2] === "b" ? -1 : 0, km[3] ? "minor" : "major"));
   for (const line of abc.split("\n").filter((l) => l.startsWith("[V:"))) {
@@ -148,7 +148,7 @@ for (let s = 1; s <= 150; s++) {
     seed: r,
     key,
     phrases: [{ cadence: "HC" }, { cadence: "PAC" }],
-    meter: r.pick(["4/4", "3/4"]),
+    meter: r.pick(["4/4", "3/4", "6/8"]),
   });
   if (!p) {
     fail("voicing", "no voicing for seed " + s);

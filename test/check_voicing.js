@@ -13,7 +13,7 @@ for (let s = 1; s <= 200; s++) {
     seed: r,
     key,
     phrases: [{ cadence: "HC" }, { cadence: "PAC" }],
-    meter: r.pick(["4/4", "3/4"]),
+    meter: r.pick(["4/4", "3/4", "6/8"]),
   });
   if (!p) {
     nulls++;
