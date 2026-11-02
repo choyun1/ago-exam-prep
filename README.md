@@ -10,6 +10,18 @@ Use it online at https://choyun1.github.io/ago-exam-prep/, or open `index.html` 
 - **Exam items:** every item of every exam with points, format, and study advice. Items that can be generated produce a new exercise each time, with a solution: open-score and trio sight-reading, transposition, figured-bass realization, melody/unfigured-bass harmonization, progressions, dictation with audio, error detection, fugue subjects with computed tonal or real answers, ground basses, modulating-phrase and ternary improvisation themes, cantus firmi, analysis assignments, essay and orchestration prompts, and ChM rehearsal scenarios. "Generate a full mock exam" fills every item at once.
 - **Study plan:** a phased timeline from today to the exam date, a weekly rotation of keyboard skills, and the AGO's 2027 resource list.
 
+## Citations
+
+Every question and exercise shows where its answer comes from.
+
+- **Knowledge questions** (`js/facts.js`) each carry a `src`: a standard reference that supports the answer, usually a Grove Music Online article, the Canterbury Dictionary of Hymnology, the Book of Common Prayer, Stevens Irwin's *Dictionary of Pipe Organ Stops*, Douglass's *Language of the Classical French Organ*, Adler's *Study of Orchestration*, or a standard harmony or counterpoint text. Citations are to the article or entry, not a page.
+- **Daily drills** (`js/drills.js`) cite the rule they apply and the 2027 exam items they train.
+- **Generated exercises** (`js/generators.js`) cite the exam item they follow in the *AGO Professional Certification Requirements for 2027* (The American Organist, July 2026) and the voice-leading or counterpoint rules the generator enforces.
+
+`test/smoke.js` fails if a question, drill, or generator has no citation.
+
+The daily quiz only asks what each exam tests. The SPC is played entirely at the console, so its quiz is transposition-key drills. The CAGO written section (C9–C13) is ear tests, fugue analysis, continuo, and form analysis, so its quiz has no general-knowledge questions.
+
 ## How the music is generated
 
 `js/harmony.js` builds functional progressions (including cadential 6/4, applied dominants, and pivot-chord modulations) and voices them in four parts with dynamic programming over voice-leading costs. Parallel fifths and octaves, hidden outer-voice perfect intervals, augmented melodic intervals, unresolved leading tones and sevenths, doubled leading tones, voice overlap, and bad spacing are rejected outright. Figures are derived from the voiced chord against the key signature. `test/check_voicing.js` checks generated passages for parallels.

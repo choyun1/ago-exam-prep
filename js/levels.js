@@ -118,8 +118,12 @@
 
   // daily-quiz mix per level: fact topics and drill kinds with weights
   const DAILY = {
-    SPC: { facts: [["hymnody", 2], ["liturgy", 2], ["registration", 2], ["organ-rep", 1]], drills: [["keySignature", 2], ["transposeKey", 3], ["interval", 2], ["earInterval", 1], ["earCadence", 1], ["mutation", 1]] },
-    CAGO: { facts: [["registration", 2], ["organ-rep", 2], ["theory", 2], ["fugue", 1], ["organ-history", 1]], drills: [["figuredToRoman", 3], ["transposeKey", 2], ["interval", 1], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 1], ["mutation", 1], ["keyRelations", 1]] },
+    // SPC is played entirely at the console (S1–S10), so its quiz is keyboard-skill drills only.
+    SPC: { facts: [], drills: [["transposeKey", 4], ["keySignature", 3], ["interval", 1]],
+      note: "The SPC is all at the console: there is no written or general-knowledge section. This quiz only drills the keys you need for the S2 transpositions." },
+    // CAGO's written section (C9–C13) is ear tests, fugue analysis, continuo, and form analysis: no general-knowledge questions.
+    CAGO: { facts: [["theory", 2], ["fugue", 2]], drills: [["figuredToRoman", 3], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 1], ["earInterval", 1], ["interval", 1], ["transposeKey", 2], ["keyRelations", 1]],
+      note: "The CAGO written section (2 hours) covers dictation, aural perception, fugue analysis, continuo, and form analysis only, so this quiz sticks to those skills." },
     AAGO: { facts: [["registration", 3], ["organ-rep", 3], ["organ-history", 2], ["theory", 1], ["fugue", 1], ["performance", 1]], drills: [["figuredToRoman", 3], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 2], ["earInterval", 1], ["transposeKey", 2], ["mutation", 1], ["clefReading", 1]] },
     ChM: { facts: [["chant", 3], ["hymnody", 3], ["liturgy", 3], ["choir", 2], ["choral-rep", 3], ["history", 1]], drills: [["chantMode", 3], ["earCadence", 1], ["earChord", 1], ["figuredToRoman", 1], ["keyRelations", 1]] },
     FAGO: { facts: [["orchestration", 2], ["counterpoint", 2], ["organ-history", 2], ["organ-rep", 2], ["registration", 1], ["history", 1]], drills: [["orchestral", 3], ["clefReading", 3], ["tonalAnswer", 2], ["earChord", 2], ["figuredToRoman", 1], ["chantMode", 1]] }
@@ -133,6 +137,13 @@
     FAGO: ["Counterpoint: Jeppesen; Gauldin; Soderlund.", "Orchestration: Adler; Kennan and Grantham; Piston.", "Score reading: Morris/Ferguson; Creuzburg; Bach chorales.", "Piano adaptation: Buck; Ellingford; Ritchie and Stauffer."]
   };
 
-  root.AGO_LEVELS = { LEVELS, DAILY, RESOURCES };
+  // The document every exam item in LEVELS follows; item ids (S1, C7, A5, …) are the document's own.
+  const REQUIREMENTS = {
+    title: "AGO Professional Certification Requirements for 2027",
+    pub: "The American Organist, July 2026",
+    url: "https://www.agohq.org/common/Uploaded%20files/Website%20Files/2026/2026-27%20AGO%20Professional%20Certification%20Requirements_.pdf"
+  };
+
+  root.AGO_LEVELS = { LEVELS, DAILY, RESOURCES, REQUIREMENTS };
   if (typeof module !== "undefined") module.exports = root.AGO_LEVELS;
 })(typeof window !== "undefined" ? window : globalThis);

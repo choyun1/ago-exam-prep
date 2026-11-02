@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const T = window.Theory, Gen = window.Gen, Drills = window.Drills, Audio = window.OrganAudio;
-  const { LEVELS, DAILY, RESOURCES } = window.AGO_LEVELS;
+  const { LEVELS, DAILY, RESOURCES, REQUIREMENTS } = window.AGO_LEVELS;
   const FACTS = window.AGO_FACTS || [];
   const EXAM_DATES = { SPC: "2027-03-31", CAGO: "2027-05-14", AAGO: "2027-06-03", ChM: "2027-06-02", FAGO: "2027-06-03" };
   const QUIZ_LEN = 12;
@@ -29,6 +29,15 @@
   const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const daysBetween = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
   const addDays = (s, n) => { const d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  // citation line shown under every answer and exercise
+  const cite = (label, text, extra) => h("p", { class: "cite" }, h("span", { class: "cite-l" }, label + ": "), text, extra || null);
+  const reqLink = () => h("a", { href: REQUIREMENTS.url, target: "_blank", rel: "noopener" }, REQUIREMENTS.title);
+  function citeQ(q) {
+    const out = [];
+    if (q.src) out.push(cite("Source", q.src));
+    if (q.trains) out.push(cite("Exam items", q.trains + ", per ", reqLink()));
+    return out;
+  }
   const fmtDate = (s) => new Date(s + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
   function renderScore(el, abc) {
@@ -91,7 +100,7 @@
   }
   function factToQ(f, r) {
     const order = r.shuffle(f.choices.map((c, i) => i));
-    return { topic: f.topic, kind: topicLabel(f.topic), q: f.q, choices: order.map((i) => f.choices[i]), answer: order.indexOf(f.answer), explain: f.explain, factId: f.id };
+    return { topic: f.topic, kind: topicLabel(f.topic), q: f.q, choices: order.map((i) => f.choices[i]), answer: order.indexOf(f.answer), explain: f.explain, src: f.src, factId: f.id };
   }
   const TOPIC_LABELS = { chant: "Chant", hymnody: "Hymnody", liturgy: "Liturgy", choir: "Choir training", "choral-rep": "Choral repertoire", "organ-history": "Organ history",
     registration: "Registration", "organ-rep": "Organ repertoire", theory: "Theory", fugue: "Fugue", counterpoint: "Counterpoint", orchestration: "Orchestration", history: "Music history", performance: "Performance practice", ear: "Ear training" };
@@ -100,7 +109,7 @@
   function buildQuiz(seedStr, lvl) {
     const r = T.rng(T.hashString(seedStr));
     const mix = DAILY[lvl];
-    const nFacts = FACTS.length ? Math.round(QUIZ_LEN / 2) : 0;
+    const nFacts = FACTS.length && mix.facts.length ? Math.round(QUIZ_LEN / 2) : 0;
     const qs = pickFacts(r, nFacts, lvl, mix.facts).map((f) => factToQ(f, r));
     while (qs.length < QUIZ_LEN) {
       const kind = r.weighted(mix.drills);
@@ -139,6 +148,7 @@
     const stage = h("div", { class: "stage" });
     main.append(head);
     if (done && !extraSeed) main.append(h("p", { class: "note" }, "You finished today's quiz (" + done.right + "/" + done.n + "). You can retake it or start an extra round below."));
+    if (DAILY[level].note) main.append(h("p", { class: "note" }, DAILY[level].note));
     main.append(progress, stage, weakPanel());
     const refreshStats = () => { const n = head.querySelectorAll(".stat-n"); n[0].textContent = String(streak()); n[1].textContent = String(history().length); };
 
@@ -165,6 +175,7 @@
           progress.children[i].classList.add(ok ? "ok" : "miss");
           fb.hidden = false; fb.className = "feedback " + (ok ? "ok" : "miss");
           fb.append(h("strong", {}, ok ? "Correct. " : "Not quite. "), q.explain || "");
+          fb.append(...citeQ(q));
           fb.append(h("div", { class: "fb-actions" }, h("button", { class: "btn primary", id: "next-q", onclick: next }, i === qs.length - 1 ? "Finish" : "Next")));
           $("#next-q").focus();
         } }, c));
@@ -225,6 +236,7 @@
     return wrap;
   }
 
+  const L_short = () => levelObj().short;
   // ---------- exercise card ----------
   function exerciseCard(item, spec, seed) {
     const [fn, o] = spec;
@@ -233,6 +245,8 @@
     try { ex = Gen.G[fn](r, Object.assign({ level }, o)); } catch (e) { return h("p", { class: "note" }, "Could not generate this one (" + e.message + "). Try again."); }
     const card = h("div", { class: "exercise" });
     card.append(h("p", { class: "ex-prompt" }, ex.prompt));
+    card.append(cite("Follows", L_short() + " " + item.id + ", " + item.name + ", in ", h("span", {}, reqLink(), ", " + REQUIREMENTS.pub)));
+    if (Gen.SRC[fn]) card.append(cite("Rules", Gen.SRC[fn]));
     (ex.scores || []).forEach((s) => {
       const box = h("figure", { class: "score" });
       const div = h("div", { class: "abc" });
@@ -270,7 +284,7 @@
     pool.forEach((f, qi) => {
       const q = factToQ(f, r);
       const opts = h("div", { class: "choices compact" });
-      const fb = h("p", { class: "muted", hidden: true }, q.explain || "");
+      const fb = h("div", { class: "muted", hidden: true }, h("p", {}, q.explain || ""), ...citeQ(q));
       q.choices.forEach((c, ci) => opts.append(h("button", { class: "choice", onclick: (e) => { if (opts.dataset.done) return; opts.dataset.done = 1; e.currentTarget.classList.add(ci === q.answer ? "right" : "wrong"); opts.children[q.answer].classList.add("right"); fb.hidden = false; gradeFact(f.id, ci === q.answer); } }, c)));
       wrap.append(h("div", { class: "mini-q" }, h("p", {}, (qi + 1) + ". " + q.q), opts, fb));
     });
