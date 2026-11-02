@@ -418,8 +418,9 @@
   }
 
   // ---------- passage generation ----------
-  // Phrase lengths: [number of chords, length of the final chord in eighths]. Every chord but the last is a
-  // quarter note, so each choice fills whole bars (4/4: 2, 2, 3 bars; 3/4: 2, 3, 4 bars).
+  // Phrase lengths: [number of chords, length of the final chord in eighths]. Every chord but the last lasts one
+  // beat (a quarter note; a dotted quarter in 6/8), so each choice fills whole bars
+  // (4/4: 2, 2, 3 bars; 3/4: 3, 2, 4 bars; 6/8: 4, 3, 5 bars).
   const PHRASE_SHAPES = {
     "4/4": [
       [[7, 4], 3],
@@ -431,8 +432,15 @@
       [[4, 6], 1],
       [[10, 6], 1],
     ],
+    "6/8": [
+      [[7, 6], 3],
+      [[5, 6], 1],
+      [[9, 6], 1],
+    ],
   };
-  // opts: { seed, key, phrases:[{cadence, key?, pivot?, pivotLabel?}], meter: "4/4"|"3/4", sameLength? }
+  const BEAT = { "4/4": 2, "3/4": 2, "6/8": 3 }; // eighths per beat
+  const BAR = { "4/4": 8, "3/4": 6, "6/8": 6 }; // eighths per bar
+  // opts: { seed, key, phrases:[{cadence, key?, pivot?, pivotLabel?}], meter: "4/4"|"3/4"|"6/8", sameLength? }
   // sameLength: true keeps every phrase at 7 chords (used where an exercise expects a fixed shape).
   function makePassage(opts) {
     const r = typeof opts.seed === "function" ? opts.seed : T.rng(opts.seed || 1);
@@ -445,7 +453,7 @@
         const k = ph.key || home;
         const [n, finalDur] = opts.sameLength ? PHRASE_SHAPES[meter][0][0] : r.weighted(PHRASE_SHAPES[meter]);
         const durs = Array(n - 1)
-          .fill(2)
+          .fill(BEAT[meter])
           .concat([finalDur]);
         let start = pi === 0 ? "I" : ph.pivot || r.pick(["I", "I", "vi", "IV", "I6"]);
         if (k.mode === "minor" && start === "iii") start = "I";
@@ -498,11 +506,12 @@
       if (d.suspension && !busy.has(i + 1) && r.chance(d.suspension)) {
         const s = trySuspension(passage, i, r);
         if (s) {
+          // held for the first half of the chord (two eighths of a dotted quarter), resolved on the rest
           const next = chords[i + 1],
-            half = next.dur / 2;
+            held = Math.ceil(next.dur / 2);
           slots[s.voice][i + 1] = [
-            { n: voicing[i][s.voice], dur: half, ci: i + 1, susp: i + 1 },
-            { n: voicing[i + 1][s.voice], dur: half, ci: i + 1, fermata: next.fermata },
+            { n: voicing[i][s.voice], dur: held, ci: i + 1, susp: i + 1 },
+            { n: voicing[i + 1][s.voice], dur: next.dur - held, ci: i + 1, fermata: next.fermata },
           ];
           slots[s.voice][i][slots[s.voice][i].length - 1].tie = true;
           suspensions[i + 1] = s;
@@ -510,19 +519,19 @@
           continue;
         }
       }
-      if (chords[i].dur !== 2 || chords[i].fermata) continue;
+      if (chords[i].dur < 2 || chords[i].dur > 3 || chords[i].fermata) continue;
       let deco = null;
       if (d.passing && r.chance(d.passing)) deco = tryPassing(passage, i, r);
       if (!deco && d.neighbor && r.chance(d.neighbor)) deco = tryNeighbor(passage, i, r);
       if (deco) {
         slots[deco.voice][i] = [
-          { n: voicing[i][deco.voice], dur: 1, ci: i },
+          { n: voicing[i][deco.voice], dur: chords[i].dur - 1, ci: i }, // in 6/8: quarter + eighth
           { n: deco.note, dur: 1, ci: i, passing: true },
         ];
         busy.add(i);
       }
     }
-    const barLen = passage.meter === "3/4" ? 6 : 8;
+    const barLen = BAR[passage.meter] || 8;
     const V = slots.map((list) => mergeTies(list.flat(), barLen));
     V.suspensions = suspensions;
     return V;
@@ -613,7 +622,7 @@
     const { chords, voicing } = passage;
     const prev = chords[i],
       next = chords[i + 1];
-    if (next.dur % 2 || next.cad64 || prev.cad64 || next.seventh) return null;
+    if (next.dur < 2 || next.cad64 || prev.cad64 || next.seventh) return null;
     const bass = voicing[i + 1][0];
     for (const v of r.shuffle([1, 2, 3])) {
       const a = voicing[i][v],
@@ -728,7 +737,7 @@
   // layout: "grand" (S+A treble, T+B bass), "open" (4 staves), "trio" (RH, LH, Ped), or custom staves
   function renderABC(o) {
     const sig = T.keySig(o.key);
-    const barLen = o.meter === "3/4" ? 6 : 8;
+    const barLen = BAR[o.meter] || 8;
     let abc = "X:1\n";
     if (o.title) abc += "T:" + o.title + "\n";
     abc += "M:" + o.meter + "\nL:1/8\n";
@@ -737,7 +746,14 @@
     const groups = staves.map((st) =>
       st.voices.length > 1 ? "(" + st.voices.map((v) => v.id).join(" ") + ")" : st.voices[0].id,
     );
-    const brace = o.brace ? "{" + groups.join(" ") + "}" : o.bracket ? "[" + groups.join(" ") + "]" : groups.join(" ");
+    // brace: all staves; bracket: all staves; organ: brace the two manual staves, pedal staff below
+    const brace = o.organ
+      ? "{" + groups.slice(0, 2).join(" ") + "} " + groups.slice(2).join(" ")
+      : o.brace
+        ? "{" + groups.join(" ") + "}"
+        : o.bracket
+          ? "[" + groups.join(" ") + "]"
+          : groups.join(" ");
     if (staves.length > 1 || staves[0].voices.length > 1) abc += "%%score " + brace + "\n";
     staves.forEach((st) =>
       st.voices.forEach((v) => {
