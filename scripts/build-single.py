@@ -22,7 +22,7 @@ out = f"""<title>AGO Exam Prep</title>
 {js}
 </script>
 """
-dest = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else root / "dist/ago-prep.html"
+dest = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else root / "dist/ago-exam-prep.html"
 dest.parent.mkdir(parents=True, exist_ok=True)
 dest.write_text(out)
 print(dest, len(out) // 1024, "KB")

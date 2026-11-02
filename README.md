@@ -2,7 +2,7 @@
 
 Practice for the American Guild of Organists certification exams: Service Playing (SPC), Colleague (CAGO), Associateship (AAGO), Choir Master (ChM), and Fellowship (FAGO), following the **2027** published requirements.
 
-Open `index.html` in a browser, or serve the folder with GitHub Pages. There is no build step and no server.
+Use it online at https://choyun1.github.io/ago-exam-prep/, or open `index.html` in a browser. There is no build step and no server.
 
 ## What it does
 
@@ -27,7 +27,7 @@ Open `index.html` in a browser, or serve the folder with GitHub Pages. There is 
 | `js/audio.js` | small additive organ synth (Web Audio) |
 | `js/app.js` | interface |
 
-`python3 -I scripts/build-single.py` writes `dist/ago-prep.html`, a single self-contained file.
+`python3 -I scripts/build-single.py` writes `dist/ago-exam-prep.html`, a single self-contained file.
 
 ## Copyright note
 
