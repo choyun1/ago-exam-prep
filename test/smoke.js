@@ -1,21 +1,68 @@
+// Smoke test: every generator, drill, and question loads and is well formed, and everything cites a source.
+// Run with `npm test` (or `node test/smoke.js`). Exits with an error on any failure.
 globalThis.window = globalThis;
-require("../js/theory.js"); require("../js/harmony.js"); require("../js/generators.js"); require("../js/drills.js");
-const {G}=Gen, {D}=Drills; let n=0, err=0; const t0=Date.now();
-const calls = [["sightReadGrand",{}],["sightReadTrio",{}],["openScore",{}],["openScore",{cClefs:true}],["transposition",{intervals:[["up a major 2nd",2],["down a minor 2nd",-1]]}],
- ["figuredBass",{}],["figuredBass",{written:true}],["harmonize",{mixed:true}],["harmonize",{}],["progressions",{}],["dictation",{kind:"melody"}],["dictation",{missing:true}],["dictation",{kind:"four"}],
- ["errorDetection",{}],["auralPerception",{}],["fugue",{voices:3}],["fugue",{voices:4,episode:true}],["improv",{kind:"ground"}],["improv",{kind:"phrases"}],["improv",{kind:"bridge"}],["improv",{kind:"ternary"}],
- ["compositionStart",{}],["cantusFirmus",{}],["analysis",{}],["essay",{}],["orchestration",{}],["choralComposition",{}],["rehearsal",{}]];
-for (let s=1;s<=25;s++){ for (const [f,o] of calls){ n++; try{ const x=G[f](Theory.rng(s*101+n),o); if(!x.title) throw new Error("no title"); }catch(e){err++; console.log(f,s,e.message);} }
- for (const f of Object.keys(D)){ n++; try{ const x=D[f](Theory.rng(s*7+n)); if(!(x.answer>=0 && x.choices.length>=2 && new Set(x.choices).size===x.choices.length)) throw new Error("bad mc "+JSON.stringify(x.choices)); }catch(e){err++; console.log(f,s,e.message);} } }
-console.log({n,err,ms:Date.now()-t0});
-const f=G.fugue(Theory.rng(5),{voices:3}); console.log(f.prompt, "\n", f.solution.text); console.log(f.scores[0].abc); console.log(f.solution.scores[0].abc);
-const fb=G.figuredBass(Theory.rng(9),{}); console.log(fb.scores[0].abc);
-// citations: every fact, drill, and generator must name its source
-require("../js/facts.js"); require("../js/levels.js");
-const noSrc = AGO_FACTS.filter((f) => !f.src).map((f) => f.id);
-const noDrillSrc = Object.keys(D).filter((k) => { const q = D[k](Theory.rng(3)); return !q.src || !q.trains; });
-const noGenSrc = Object.keys(G).filter((k) => !Gen.SRC[k]);
-const genUsed = AGO_LEVELS.LEVELS.flatMap((L) => L.sections.flatMap((s) => s.items)).flatMap((it) => (it.gen ? [it.gen].concat(it.alt || []) : [])).map((g) => g[0]);
-const unknownGen = genUsed.filter((g) => !G[g]);
-console.log("citations", { noSrc, noDrillSrc, noGenSrc, unknownGen });
-if (noSrc.length || noDrillSrc.length || noGenSrc.length || unknownGen.length) process.exit(1);
+require("../js/theory.js");
+require("../js/harmony.js");
+require("../js/generators.js");
+require("../js/drills.js");
+require("../js/facts.js");
+require("../js/levels.js");
+const { G } = Gen,
+  { D } = Drills;
+const problems = [];
+
+// every generator, with the options the exam items use, across many seeds
+const calls = AGO_LEVELS.LEVELS.flatMap((L) => L.sections.flatMap((s) => s.items))
+  .flatMap((it) => (it.gen ? [it.gen].concat(it.alt || []) : []))
+  .concat([
+    ["analysis", { level: "ChM" }],
+    ["analysis", { level: "CAGO" }],
+  ]);
+let n = 0;
+for (let s = 1; s <= 25; s++) {
+  for (const [f, o] of calls) {
+    n++;
+    try {
+      const x = G[f](Theory.rng(s * 101 + n), Object.assign({ level: "AAGO" }, o));
+      if (!x.title || !x.prompt) throw new Error("no title or prompt");
+    } catch (e) {
+      problems.push(f + " seed " + s + ": " + e.message);
+    }
+  }
+  for (const f of Object.keys(D)) {
+    n++;
+    try {
+      const x = D[f](Theory.rng(s * 7 + n));
+      if (!(x.answer >= 0 && x.choices.length >= 2 && new Set(x.choices).size === x.choices.length))
+        throw new Error("bad choices " + JSON.stringify(x.choices));
+      if (!x.src || !x.trains) throw new Error("no citation");
+    } catch (e) {
+      problems.push(f + " seed " + s + ": " + e.message);
+    }
+  }
+}
+
+// the question bank
+const ids = new Set();
+for (const f of AGO_FACTS) {
+  if (ids.has(f.id)) problems.push("duplicate fact id " + f.id);
+  ids.add(f.id);
+  if (!f.choices.includes(f.answer)) problems.push(f.id + ": answer is not one of the choices");
+  if (new Set(f.choices).size !== f.choices.length) problems.push(f.id + ": repeated choice");
+  if (!f.src) problems.push(f.id + ": no src");
+}
+const topics = new Set(AGO_FACTS.map((f) => f.topic));
+for (const [L, mix] of Object.entries(AGO_LEVELS.DAILY)) {
+  for (const [t] of mix.facts)
+    if (!topics.has(t)) problems.push("DAILY." + L + " uses topic " + t + ", which has no questions");
+  for (const [d] of mix.drills) if (!D[d]) problems.push("DAILY." + L + " uses drill " + d + ", which doesn't exist");
+}
+
+// every generator cites the rules it applies
+for (const k of Object.keys(G)) if (!Gen.SRC[k]) problems.push("generator " + k + " has no entry in Gen.SRC");
+
+console.log({ generated: n, facts: AGO_FACTS.length, problems: problems.length });
+if (problems.length) {
+  console.log(problems.slice(0, 20).join("\n"));
+  process.exit(1);
+}

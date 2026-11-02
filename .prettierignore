@@ -1,0 +1,5 @@
+# One question / one exam item per line is easier to scan and edit by hand.
+js/facts.js
+js/levels.js
+vendor/
+dist/

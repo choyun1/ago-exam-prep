@@ -1,5 +1,9 @@
 /* 2027 AGO certification structure (from "AGO Professional Certification Requirements for 2027", TAO July 2026),
- * with study guidance and links to the generators that produce practice for each item. */
+ * with study guidance and links to the generators that produce practice for each item.
+ * Each level: examDate (YYYY-MM-DD, drives the countdown and study plan), display text (date, deadline, fee, where, pass),
+ * and sections of items. Each item: id and points as in the requirements, kind (rep, service, keyboard, ear, written,
+ * knowledge, choir), guide (study advice), and optionally gen: [generator name in js/generators.js, options] plus alt
+ * (other options the "New exercise" button rotates through) or topics (question-bank topics for knowledge items). */
 (function (root) {
   "use strict";
   const iv = { M2: [["up a major 2nd", 2], ["down a major 2nd", -2], ["up a minor 2nd", 1], ["down a minor 2nd", -1]] };
@@ -7,7 +11,7 @@
 
   const LEVELS = [
     {
-      id: "SPC", name: "Service Playing", short: "SPC", date: "Any date Oct. 1, 2026 – Mar. 31, 2027", deadline: "Application closes Mar. 1, 2027", fee: "$250",
+      id: "SPC", examDate: "2027-03-31", name: "Service Playing", short: "SPC", date: "Any date Oct. 1, 2026 – Mar. 31, 2027", deadline: "Application closes Mar. 1, 2027", fee: "$250",
       where: "Any chapter with a suitable organ (your own church organ is allowed) and a recording setup.",
       pass: "More than 50% on every item and more than 70% overall.",
       sections: [{ name: "Service (one sitting)", items: [
@@ -24,7 +28,7 @@
       ] }]
     },
     {
-      id: "CAGO", name: "Colleague", short: "CAGO", date: "Fri., Nov. 13, 2026 or Fri., May 14, 2027", deadline: "May sitting: application Jan. 1 – Mar. 1, 2027", fee: "$350 (section $200)",
+      id: "CAGO", examDate: "2027-05-14", name: "Colleague", short: "CAGO", date: "Fri., Nov. 13, 2026 or Fri., May 14, 2027", deadline: "May sitting: application Jan. 1 – Mar. 1, 2027", fee: "$350 (section $200)",
       where: "Any chapter, on an organ you don't normally play.", pass: "More than 50% on every item and more than 70% per section.",
       sections: [
         { name: "Section 1: Practical", items: [
@@ -47,7 +51,7 @@
       ]
     },
     {
-      id: "AAGO", name: "Associateship", short: "AAGO", date: "Thu., June 3 – Fri., June 4, 2027", deadline: "Application Jan. 1 – Apr. 1, 2027", fee: "$475 (section $300)",
+      id: "AAGO", examDate: "2027-06-03", name: "Associateship", short: "AAGO", date: "Thu., June 3 – Fri., June 4, 2027", deadline: "Application Jan. 1 – Apr. 1, 2027", fee: "$475 (section $300)",
       where: "Practical at a designated exam center with two examiners; written may be taken at any chapter.", pass: "More than 50% on every item and more than 70% per section. Passed sections count for five years.",
       sections: [
         { name: "Section 1: Practical", items: [
@@ -71,7 +75,7 @@
       ]
     },
     {
-      id: "ChM", name: "Choir Master", short: "ChM", date: "Wed., June 2, 2027", deadline: "Application Jan. 1 – Apr. 1, 2027", fee: "$500 (section $300)",
+      id: "ChM", examDate: "2027-06-02", name: "Choir Master", short: "ChM", date: "Wed., June 2, 2027", deadline: "Application Jan. 1 – Apr. 1, 2027", fee: "$500 (section $300)",
       where: "Practical at a designated exam center with a live ensemble; written at any chapter.", pass: "More than 50% on every item and more than 70% per section.",
       sections: [
         { name: "Section 1: Practical", items: [
@@ -91,7 +95,7 @@
       ]
     },
     {
-      id: "FAGO", name: "Fellowship", short: "FAGO", date: "Thu., June 3 – Fri., June 4, 2027", deadline: "AAGO must be earned at least a year earlier", fee: "$475 (section $300)",
+      id: "FAGO", examDate: "2027-06-03", name: "Fellowship", short: "FAGO", date: "Thu., June 3 – Fri., June 4, 2027", deadline: "AAGO must be earned at least a year earlier", fee: "$475 (section $300)",
       where: "Practical at a designated exam center with two examiners; written at any chapter.", pass: "More than 50% on every item and more than 70% per section.",
       sections: [
         { name: "Section 1: Practical", items: [
