@@ -4,7 +4,6 @@
   const T = window.Theory, Gen = window.Gen, Drills = window.Drills, Audio = window.OrganAudio;
   const { LEVELS, DAILY, RESOURCES, REQUIREMENTS } = window.AGO_LEVELS;
   const FACTS = window.AGO_FACTS || [];
-  const EXAM_DATES = { SPC: "2027-03-31", CAGO: "2027-05-14", AAGO: "2027-06-03", ChM: "2027-06-02", FAGO: "2027-06-03" };
   const QUIZ_LEN = 12;
 
   // ---------- storage (best-effort) ----------
@@ -65,18 +64,17 @@
         h("span", { class: "knob-name" }, l.name));
       jamb.append(b);
     });
-    const days = daysBetween(todayStr(), EXAM_DATES[level]);
+    const days = daysBetween(todayStr(), levelObj().examDate);
     $("#countdown").textContent = days >= 0 ? (level === "SPC" ? "SPC window closes in " + days + " days" : levelObj().short + " exam in " + days + " days") : "";
   }
 
   // ---------- spaced repetition for facts ----------
   const INTERVALS = [0, 1, 3, 7, 21, 60];
   function srs() { return store.get("srs", {}); }
-  function pickFacts(r, n, lvl, topicWeights) {
+  function pickFacts(r, n, topicWeights) {
     const s = srs(), today = todayStr();
-    const eligible = FACTS.filter((f) => !f.levels || !f.levels.length || f.levels.includes(lvl) || topicWeights.some(([t]) => t === f.topic));
     const wanted = new Set(topicWeights.map(([t]) => t));
-    const pool = eligible.filter((f) => wanted.has(f.topic));
+    const pool = FACTS.filter((f) => wanted.has(f.topic));
     const due = r.shuffle(pool.filter((f) => s[f.id] && s[f.id].due <= today));
     const fresh = r.shuffle(pool.filter((f) => !s[f.id]));
     const out = [];
@@ -100,7 +98,7 @@
   }
   function factToQ(f, r) {
     const order = r.shuffle(f.choices.map((c, i) => i));
-    return { topic: f.topic, kind: topicLabel(f.topic), q: f.q, choices: order.map((i) => f.choices[i]), answer: order.indexOf(f.answer), explain: f.explain, src: f.src, factId: f.id };
+    return { topic: f.topic, kind: topicLabel(f.topic), q: f.q, choices: order.map((i) => f.choices[i]), answer: order.indexOf(f.choices.indexOf(f.answer)), explain: f.explain, src: f.src, factId: f.id };
   }
   const TOPIC_LABELS = { chant: "Chant", hymnody: "Hymnody", liturgy: "Liturgy", choir: "Choir training", "choral-rep": "Choral repertoire", "organ-history": "Organ history",
     registration: "Registration", "organ-rep": "Organ repertoire", theory: "Theory", fugue: "Fugue", counterpoint: "Counterpoint", orchestration: "Orchestration", history: "Music history", performance: "Performance practice", ear: "Ear training" };
@@ -110,7 +108,7 @@
     const r = T.rng(T.hashString(seedStr));
     const mix = DAILY[lvl];
     const nFacts = FACTS.length && mix.facts.length ? Math.round(QUIZ_LEN / 2) : 0;
-    const qs = pickFacts(r, nFacts, lvl, mix.facts).map((f) => factToQ(f, r));
+    const qs = pickFacts(r, nFacts, mix.facts).map((f) => factToQ(f, r));
     while (qs.length < QUIZ_LEN) {
       const kind = r.weighted(mix.drills);
       try { qs.push(Drills.D[kind](r)); } catch (e) { console.warn(kind, e); }
@@ -220,17 +218,14 @@
     if (!Audio.available()) { wrap.append(h("span", { class: "muted" }, "Audio is not available in this browser.")); return wrap; }
     const status = h("span", { class: "muted audio-status" });
     let timer = null;
-    const play = (withTonic) => {
+    const play = () => {
       clearTimeout(timer);
-      let notes = a.notes;
-      const key = opts.tonicKey || a.tonicKey;
-      if (withTonic && key) notes = Audio.withTonic(key, T, notes);
-      const dur = Audio.play(notes);
+      const dur = Audio.play(a.notes);
       status.textContent = "Playing…"; timer = setTimeout(() => { status.textContent = ""; }, dur * 1000 + 300);
     };
     const key = opts.tonicKey || a.tonicKey;
     if (key) wrap.append(h("button", { class: "btn", onclick: () => { Audio.play(Audio.tonicChord(key, T)); } }, "Tonic chord"));
-    wrap.append(h("button", { class: "btn primary", onclick: () => play(false) }, "▶ Play"));
+    wrap.append(h("button", { class: "btn primary", onclick: play }, "▶ Play"));
     wrap.append(h("button", { class: "btn", onclick: () => { Audio.stop(); status.textContent = ""; } }, "Stop"));
     wrap.append(status);
     return wrap;
@@ -343,7 +338,7 @@
 
   // ---------- plan view ----------
   function viewPlan(main) {
-    const L = levelObj(); const today = todayStr(); const examDate = EXAM_DATES[level];
+    const L = levelObj(); const today = todayStr(); const examDate = L.examDate;
     const days = daysBetween(today, examDate); const weeks = Math.max(1, Math.floor(days / 7));
     main.append(h("div", { class: "view-head" }, h("div", {}, h("p", { class: "eyebrow" }, "Study plan"), h("h2", {}, L.name + ": " + weeks + " weeks to go")),
       h("p", { class: "muted" }, "Based on " + fmtDate(today) + " → " + fmtDate(examDate) + ".")));

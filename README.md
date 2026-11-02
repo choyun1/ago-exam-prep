@@ -24,7 +24,26 @@ The daily quiz only asks what each exam tests. The SPC is played entirely at the
 
 ## How the music is generated
 
-`js/harmony.js` builds functional progressions (including cadential 6/4, applied dominants, and pivot-chord modulations) and voices them in four parts with dynamic programming over voice-leading costs. Parallel fifths and octaves, hidden outer-voice perfect intervals, augmented melodic intervals, unresolved leading tones and sevenths, doubled leading tones, voice overlap, and bad spacing are rejected outright. Figures are derived from the voiced chord against the key signature. `test/check_voicing.js` checks generated passages for parallels.
+`js/harmony.js` builds functional progressions (including cadential 6/4, applied dominants, and pivot-chord modulations) in phrases of varying length, and voices them in four parts with dynamic programming over voice-leading costs. Parallel fifths and octaves, hidden outer-voice perfect intervals, augmented melodic intervals, unresolved leading tones and sevenths, doubled leading tones, voice overlap, and bad spacing are rejected outright. Upper voices are then decorated with passing tones, neighbor tones, and prepared 4–3, 7–6, and 9–8 suspensions. Figures are derived from the voiced chord against the key signature, with suspensions written as 4–3, 7–6, or 9–8.
+
+Fugue answers are computed from the subject: real answers move up a perfect 5th; tonal answers answer ^5 with ^1 (and ^1 with ^5) and change over to the dominant at the first leap after the head.
+
+## Editing
+
+- **Questions:** `js/facts.js`, one question per line. `answer` is the exact text of the right choice, so choices can be reordered freely. Every question needs a `src`.
+- **Exam requirements and daily mix:** `js/levels.js`. `examDate` drives the countdown and study plan; `gen` names the generator in `js/generators.js` that makes practice for an item.
+- **Fugue subjects and ground basses:** `SUBJECTS` and `GROUNDS` in `js/generators.js`, written as scale-degree tokens explained in the comment above them.
+- **Short names** (`L`, `a`, `o`, `dia`, `ds`, `ss`) are explained at the top of `js/theory.js`.
+
+## Tests
+
+`npm test` (Node 18 or later, nothing to install) runs:
+
+- `test/smoke.js`: every generator and drill runs for 25 seeds; every question has a valid answer and a source.
+- `test/check_voicing.js`: 200 voiced passages have no parallel 5ths or octaves.
+- `test/music.js`: every generated score has whole bars and no wrong double sharps or flats; every fugue answer keeps its subject's shape; decorated passages have no parallels on any eighth note and every suspension resolves down by step.
+
+`npm run screenshots` opens the app in Chromium (needs Playwright) and saves screenshots of every view to `test/`.
 
 ## Files
 
@@ -39,7 +58,7 @@ The daily quiz only asks what each exam tests. The SPC is played entirely at the
 | `js/audio.js` | small additive organ synth (Web Audio) |
 | `js/app.js` | interface |
 
-`python3 -I scripts/build-single.py` writes `dist/ago-exam-prep.html`, a single self-contained file.
+`npm run build` (or `python3 -I scripts/build-single.py`) writes `dist/ago-exam-prep.html`, a single self-contained file.
 
 ## Copyright note
 

@@ -31,7 +31,6 @@
   const MINOR_MAP = { "I": "i", "I6": "i6", "I64": "i64", "ii": "ii°", "ii6": "ii°6", "ii65": "iiø65", "iii": "III", "IV": "iv", "IV6": "iv6",
     "vi": "VI", "vii°6": "vii°6", "V/V": "V/V", "V7/V": "V7/V", "V65/V": "V65/V" };
   function modeSym(sym, mode) { return mode === "minor" ? (MINOR_MAP[sym] || sym) : sym; }
-  const romanFor = modeSym;
 
   // Builds a phrase of n chords ending with a cadence. Returns array of major-style symbols.
   function buildPhrase(r, n, cadence, opts) {
@@ -59,7 +58,12 @@
       if (rep) continue;
       return full;
     }
-    return ["I", "IV", "ii6", "I64", "V", "V7", "I"].slice(-n);
+    // fallback (rarely reached): a plain opening walk into the first cadence formula
+    const tail = cadence === "PAC" ? ["ii6", "V7", "I"] : cadence === "IAC" ? ["IV", "V", "I"] : cadence === "HC" ? ["I", "ii6", "V"] : ["IV", "V", "vi"];
+    const fill = ["I", "vi", "IV", "I6", "ii", "I", "vi", "IV"];
+    const head = fill.slice(0, Math.max(0, n - tail.length));
+    if (head[head.length - 1] === tail[0]) head[head.length - 1] = "vi";
+    return head.concat(tail);
   }
 
   // ---------- voicing ----------
@@ -221,17 +225,24 @@
   }
 
   // ---------- passage generation ----------
-  // opts: { seed, key, mode, phrases:[{cadence, key?, pivot?}], meter: "4/4"|"3/4" }
+  // Phrase lengths: [number of chords, length of the final chord in eighths]. Every chord but the last is a
+  // quarter note, so each choice fills whole bars (4/4: 2, 2, 3 bars; 3/4: 2, 3, 4 bars).
+  const PHRASE_SHAPES = {
+    "4/4": [[[7, 4], 3], [[5, 8], 1], [[9, 8], 1]],
+    "3/4": [[[7, 6], 3], [[4, 6], 1], [[10, 6], 1]]
+  };
+  // opts: { seed, key, phrases:[{cadence, key?, pivot?, pivotLabel?}], meter: "4/4"|"3/4", sameLength? }
+  // sameLength: true keeps every phrase at 7 chords (used where an exercise expects a fixed shape).
   function makePassage(opts) {
     const r = typeof opts.seed === "function" ? opts.seed : T.rng(opts.seed || 1);
     const home = opts.key;
     const meter = opts.meter || "4/4";
-    const n = meter === "3/4" ? 7 : 7;
-    const durs = meter === "3/4" ? [2, 2, 2, 2, 2, 2, 6] : [2, 2, 2, 2, 2, 2, 4];
     for (let attempt = 0; attempt < 30; attempt++) {
       const chords = [], meta = [];
       opts.phrases.forEach((ph, pi) => {
         const k = ph.key || home;
+        const [n, finalDur] = opts.sameLength ? PHRASE_SHAPES[meter][0][0] : r.weighted(PHRASE_SHAPES[meter]);
+        const durs = Array(n - 1).fill(2).concat([finalDur]);
         let start = pi === 0 ? "I" : (ph.pivot || r.pick(["I", "I", "vi", "IV", "I6"]));
         if (k.mode === "minor" && (start === "iii")) start = "I";
         const syms = buildPhrase(r, n, ph.cadence, { start, mode: k.mode });
@@ -254,71 +265,145 @@
     return null;
   }
 
-  // ---------- melodic embellishment (passing tones) ----------
-  // returns per-voice event lists [{n, dur, chordIdx}] in eighth-note units
-  function toEvents(passage, embellish, r) {
-    const V = [[], [], [], []];
+  // ---------- melodic decoration: passing tones, neighbor tones, suspensions ----------
+  // Turns a voiced passage into per-voice note lists [{n, dur, ci, ...}] (durations in eighths; ci = chord index).
+  // decor: a number (chance of a passing tone, as before) or
+  //   { passing, neighbor, suspension }: the chance, for each pair of neighboring chords, of trying each decoration.
+  // At most one voice is decorated per chord, so two voices never move in eighths against each other.
+  // Suspensions are 4–3, 7–6, or 9–8 in an upper voice, prepared by the same note in the chord before and resolved
+  // down by step; the result lists them in `.suspensions` (chord index -> {voice, sus, res}) for figured bass.
+  function toEvents(passage, decor, r) {
+    const d = typeof decor === "number" ? { passing: decor } : (decor || {});
     const { chords, voicing } = passage;
-    for (let i = 0; i < chords.length; i++) {
-      for (let v = 0; v < 4; v++) V[v].push({ n: voicing[i][v], dur: chords[i].dur, ci: i, fermata: chords[i].fermata });
-    }
-    if (!embellish) return V;
-    const prob = typeof embellish === "number" ? embellish : 0.35;
-    for (let i = 0; i < chords.length - 1; i++) {
-      if (chords[i].dur !== 2 || chords[i].fermata) continue;
-      if (!r.chance(prob)) continue;
-      const order = r.shuffle([1, 2, 3, 0]);
-      for (const v of order) {
-        const a = voicing[i][v], b = voicing[i + 1][v];
-        if (Math.abs(T.dia(b) - T.dia(a)) !== 2) continue;
-        const k = chords[i].key;
-        const up = T.dia(b) > T.dia(a);
-        const d = T.dia(a) + (up ? 1 : -1);
-        const L = ((d % 7) + 7) % 7;
-        const deg = ((L - k.t.L) % 7 + 7) % 7;
-        const pc = T.degreePC(k, deg, k.mode === "minor" ? { raise7: up && deg === 6, raise6: up && deg === 5 && T.sameClass(b, T.degreePC(k, 6, { raise7: true })) } : null);
-        const pn = { L: pc.L, a: pc.a, o: Math.floor(d / 7) };
-        const s1 = Math.abs(T.midi(pn) - T.midi(a)), s2 = Math.abs(T.midi(b) - T.midi(pn));
-        if (s1 < 1 || s1 > 2 || s2 < 1 || s2 > 2) continue;
-        // parallel check: passing note vs other voices' held notes, moving into next chord
-        let bad = false;
-        for (let w = 0; w < 4; w++) {
-          if (w === v) continue;
-          const held = voicing[i][w], nxt = voicing[i + 1][w];
-          const lo = (x, y) => (T.midi(x) < T.midi(y) ? [x, y] : [y, x]);
-          const [p1, p2] = lo(pn, held), [c1, c2] = lo(b, nxt);
-          const ip = ((T.midi(p2) - T.midi(p1)) % 12 + 12) % 12, ic = ((T.midi(c2) - T.midi(c1)) % 12 + 12) % 12;
-          if ((ip === 7 || ip === 0) && ip === ic && (T.midi(held) !== T.midi(nxt) || T.midi(pn) !== T.midi(b))) bad = true;
-          if (w < v && T.midi(pn) <= T.midi(held)) bad = true;
-          if (w > v && T.midi(pn) >= T.midi(held)) bad = true;
+    const n = chords.length;
+    // slots[v][i] = notes voice v plays during chord i
+    const slots = [0, 1, 2, 3].map((v) => chords.map((ch, i) => [{ n: voicing[i][v], dur: ch.dur, ci: i, fermata: ch.fermata }]));
+    const busy = new Set(); // chords already decorated
+    const suspensions = {};
+    for (let i = 0; i < n - 1; i++) {
+      if (busy.has(i)) continue;
+      if (d.suspension && !busy.has(i + 1) && r.chance(d.suspension)) {
+        const s = trySuspension(passage, i, r);
+        if (s) {
+          const next = chords[i + 1], half = next.dur / 2;
+          slots[s.voice][i + 1] = [{ n: voicing[i][s.voice], dur: half, ci: i + 1, susp: i + 1 }, { n: voicing[i + 1][s.voice], dur: half, ci: i + 1, fermata: next.fermata }];
+          slots[s.voice][i][slots[s.voice][i].length - 1].tie = true;
+          suspensions[i + 1] = s; busy.add(i + 1); continue;
         }
-        if (bad) continue;
-        const ev = V[v][i];
-        V[v][i] = { n: a, dur: 1, ci: i };
-        V[v].splice(i + 1, 0, { n: pn, dur: 1, ci: i, passing: true });
-        // keep indices aligned: rebuild by chord index later
-        for (let w = 0; w < 4; w++) if (w !== v) V[w].splice(i + 1, 0, null);
-        void ev;
-        break;
       }
+      if (chords[i].dur !== 2 || chords[i].fermata) continue;
+      let deco = null;
+      if (d.passing && r.chance(d.passing)) deco = tryPassing(passage, i, r);
+      if (!deco && d.neighbor && r.chance(d.neighbor)) deco = tryNeighbor(passage, i, r);
+      if (deco) { slots[deco.voice][i] = [{ n: voicing[i][deco.voice], dur: 1, ci: i }, { n: deco.note, dur: 1, ci: i, passing: true }]; busy.add(i); }
     }
-    return V.map((list) => list.filter((e) => e !== null));
+    const barLen = passage.meter === "3/4" ? 6 : 8;
+    const V = slots.map((list) => mergeTies(list.flat(), barLen));
+    V.suspensions = suspensions;
+    return V;
+  }
+  // A tied note that stays inside one bar is written as one longer note (e.g. quarter tied to eighth = dotted quarter).
+  function mergeTies(events, barLen) {
+    const out = []; let pos = 0;
+    for (const e of events) {
+      const prev = out[out.length - 1];
+      if (prev && prev.tie && prev.n && e.n && T.midi(prev.n) === T.midi(e.n) && [3, 4, 6, 8].includes(prev.dur + e.dur) &&
+          Math.floor((pos - prev.dur) / barLen) === Math.floor((pos + e.dur - 1) / barLen)) {
+        out[out.length - 1] = Object.assign({}, prev, { dur: prev.dur + e.dur, tie: false, susp: e.susp }); // keeps the earlier chord index
+      } else out.push(Object.assign({}, e));
+      pos += e.dur;
+    }
+    return out;
+  }
+  // Would an eighth note `pn` in voice v, on the second half of chord i, make parallels or crossings?
+  function eighthIsClean(voicing, i, v, pn) {
+    const b = voicing[i + 1][v];
+    for (let w = 0; w < 4; w++) {
+      if (w === v) continue;
+      const held = voicing[i][w], nxt = voicing[i + 1][w];
+      const lo = (x, y) => (T.midi(x) < T.midi(y) ? [x, y] : [y, x]);
+      const [p1, p2] = lo(pn, held), [c1, c2] = lo(b, nxt);
+      const ip = ((T.midi(p2) - T.midi(p1)) % 12 + 12) % 12, ic = ((T.midi(c2) - T.midi(c1)) % 12 + 12) % 12;
+      if ((ip === 7 || ip === 0) && ip === ic && (T.midi(held) !== T.midi(nxt) || T.midi(pn) !== T.midi(b))) return false;
+      if (w < v && T.midi(pn) <= T.midi(held)) return false;
+      if (w > v && T.midi(pn) >= T.midi(held)) return false;
+    }
+    return true;
+  }
+  // the diatonic note one step up or down from `from` in key k (raising ^6/^7 in minor where a line rises to the tonic)
+  function stepFrom(k, from, dir, target) {
+    const dd = T.dia(from) + dir;
+    const L = ((dd % 7) + 7) % 7;
+    const deg = ((L - k.t.L) % 7 + 7) % 7;
+    const raise = k.mode === "minor" ? { raise7: deg === 6 && (dir > 0 || !target), raise6: dir > 0 && deg === 5 && target && T.sameClass(target, T.degreePC(k, 6, { raise7: true })) } : null;
+    const pc = T.degreePC(k, deg, raise);
+    const pn = { L: pc.L, a: pc.a, o: Math.floor(dd / 7) };
+    const s = Math.abs(T.midi(pn) - T.midi(from));
+    return s >= 1 && s <= 2 ? pn : null;
+  }
+  // passing tone: a voice that moves a third fills it in with a step
+  function tryPassing(passage, i, r) {
+    const { chords, voicing } = passage;
+    for (const v of r.shuffle([1, 2, 3, 0])) {
+      const a = voicing[i][v], b = voicing[i + 1][v];
+      if (Math.abs(T.dia(b) - T.dia(a)) !== 2) continue;
+      const pn = stepFrom(chords[i].key, a, T.dia(b) > T.dia(a) ? 1 : -1, b);
+      if (!pn || Math.abs(T.midi(b) - T.midi(pn)) > 2 || Math.abs(T.midi(b) - T.midi(pn)) < 1) continue;
+      if (eighthIsClean(voicing, i, v, pn)) return { voice: v, note: pn };
+    }
+    return null;
+  }
+  // neighbor tone: an upper voice that repeats a note steps away and back
+  function tryNeighbor(passage, i, r) {
+    const { chords, voicing } = passage;
+    for (const v of r.shuffle([1, 2, 3])) {
+      const a = voicing[i][v];
+      if (T.midi(a) !== T.midi(voicing[i + 1][v])) continue;
+      const pn = stepFrom(chords[i].key, a, r.chance(0.5) ? 1 : -1, null);
+      if (pn && eighthIsClean(voicing, i, v, pn)) return { voice: v, note: pn };
+    }
+    return null;
+  }
+  // suspension: an upper voice that steps down into chord i+1 holds its note over the beat, then resolves
+  function trySuspension(passage, i, r) {
+    const { chords, voicing } = passage;
+    const prev = chords[i], next = chords[i + 1];
+    if (next.dur % 2 || next.cad64 || prev.cad64 || next.seventh) return null;
+    const bass = voicing[i + 1][0];
+    for (const v of r.shuffle([1, 2, 3])) {
+      const a = voicing[i][v], b = voicing[i + 1][v];
+      if (T.dia(a) - T.dia(b) !== 1 || T.midi(a) - T.midi(b) > 2 || T.midi(a) - T.midi(b) < 1) continue;
+      if ((prev.ltPC && T.sameClass(a, prev.ltPC)) || (prev.seventh && T.sameClass(a, prev.tones[3]))) continue;
+      const above = T.dia(a) - T.dia(bass);
+      const g = above % 7;
+      const kind = g === 3 ? [4, 3] : g === 6 ? [7, 6] : g === 1 && above > 7 ? [9, 8] : null;
+      if (!kind) continue;
+      // the note of resolution must not sound in another upper voice against the suspension (9–8 doubles the bass, which is fine)
+      if ([1, 2, 3].some((w) => w !== v && T.sameClass(voicing[i + 1][w], b))) continue;
+      // the held note must not cross the voices around it
+      if ((v < 3 && T.midi(a) >= T.midi(voicing[i + 1][v + 1])) || T.midi(a) <= T.midi(voicing[i + 1][v - 1])) continue;
+      return { voice: v, sus: kind[0], res: kind[1], note: a };
+    }
+    return null;
   }
 
   // ---------- figured bass ----------
   const FIG_STD = { "0": [], "1": ["6"], "2": ["6", "4"] };
   const FIG7 = { "0": ["7"], "1": ["6", "5"], "2": ["4", "3"], "3": ["4", "2"] };
-  function figures(ch, bassNote, sig) {
+  // Figures for chord `ch` over `bassNote`, with accidentals relative to key signature `sig`.
+  // susp (optional, from toEvents): {sus, res, note} writes the suspension as "4–3", "7–6" or "9–8".
+  function figures(ch, bassNote, sig, susp) {
     const base = (ch.seventh ? FIG7 : FIG_STD)[String(ch.inv)].slice();
     const marks = {};
     const extras = [];
+    const accFor = (t) => (t.a - sig[t.L] > 0 ? (t.a === 0 ? "♮" : "♯") : (t.a === 0 ? "♮" : "♭"));
     for (let i = 0; i < ch.tones.length; i++) {
       if (i === ch.inv) continue;
       const t = ch.tones[i];
       if (t.a === sig[t.L]) continue;
       const num = ((t.L - bassNote.L) % 7 + 7) % 7; // 2=3rd,4=5th,5=6th,3=4th,1=2nd,6=7th
       const fig = String({ 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 }[num]);
-      const acc = t.a - sig[t.L] > 0 ? (t.a === 0 ? "♮" : "♯") : (t.a === 0 ? "♮" : "♭");
+      const acc = accFor(t);
       if (base.includes(fig)) marks[fig] = acc;
       else if (fig === "3") extras.push({ fig: "3", acc, bare: true });
       else extras.push({ fig, acc });
@@ -328,8 +413,17 @@
       if (e.bare) out.push(e.acc); // a lone accidental means the 3rd
       else out.unshift(e.acc + e.fig);
     }
-    // order top-down by numeric value
-    const val = (s) => (/\d/.test(s) ? parseInt(s.replace(/[^\d]/g, ""), 10) : 3);
+    if (susp) {
+      // the resolution figure (a bare accidental means the 3rd) joins the suspension figure: 4–3, 4–♯, 7–6, 9–8
+      const isRes = (s) => (susp.res === 3 ? !/\d/.test(s) || /3$/.test(s) : new RegExp(susp.res + "$").test(s));
+      const i = out.findIndex(isRes);
+      const resTxt = i >= 0 ? (/\d/.test(out[i]) ? out[i] : out[i] || String(susp.res)) : String(susp.res);
+      if (i >= 0) out.splice(i, 1);
+      const sn = susp.note, sacc = sn.a === sig[sn.L] ? "" : accFor(sn);
+      out.push(sacc + susp.sus + "–" + resTxt);
+    }
+    // order top-down by numeric value (first number of each figure; a bare accidental counts as 3)
+    const val = (s) => (/\d/.test(s) ? parseInt(s.match(/\d/)[0], 10) : 3);
     out.sort((x, y) => val(y) - val(x));
     return out;
   }
@@ -351,7 +445,7 @@
   // events: [{n|null, dur, hidden?, fermata?, ann?: [strings below], annAbove?}]
   function voiceToABC(events, sig, barLen) {
     let out = "", pos = 0, state = {};
-    events.forEach((e, i) => {
+    events.forEach((e) => {
       if (pos > 0 && pos % barLen === 0) { out += " | "; state = {}; }
       let tok = "";
       if (e.annAbove) tok += '"^' + e.annAbove + '"';
@@ -363,11 +457,10 @@
         const key = e.n.L + ":" + e.n.o;
         const cur = key in state ? state[key] : sig[e.n.L];
         if (e.n.a !== cur) { tok += ABC_ACC[String(e.n.a)]; state[key] = e.n.a; }
-        tok += abcPitch(e.n) + durStr(e.dur);
+        tok += abcPitch(e.n) + durStr(e.dur) + (e.tie ? "-" : "");
       }
       out += tok + " ";
       pos += e.dur;
-      void i;
     });
     return out + "|]";
   }
@@ -392,7 +485,7 @@
     return abc;
   }
 
-  const api = { NEXT, PREDOM, modeSym, romanFor, buildPhrase, decorateChord, voice, makePassage, toEvents, figures, renderABC, voiceToABC, abcPitch, abcKey, RANGE };
+  const api = { NEXT, PREDOM, modeSym, buildPhrase, decorateChord, voice, makePassage, toEvents, figures, renderABC, voiceToABC, abcPitch, abcKey, RANGE };
   root.Harmony = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

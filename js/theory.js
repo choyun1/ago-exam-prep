@@ -1,5 +1,15 @@
 /* Core pitch, key and chord spelling. No dependencies.
- * A note is { L: letter 0..6 (C..B), a: alteration in semitones, o: octave } (middle C = C4). */
+ *
+ * Glossary of the short names used here and in harmony.js / generators.js:
+ *   note      { L, a, o }: L = letter 0–6 (C D E F G A B), a = alteration in semitones (-1 flat, 1 sharp, 2 double sharp),
+ *             o = octave (middle C = C4). A pitch class is the same without o.
+ *   key       { t, mode }: t = tonic pitch class, mode = "major" | "minor".
+ *   dia(n)    diatonic step number (o * 7 + L): counts letter names, so C4→E4 is 2 steps whatever the accidentals.
+ *   midi(n)   MIDI number (middle C = 60): counts semitones.
+ *   ds, ss    an interval as (diatonic steps, semitones): a major 3rd is (2, 4), a diminished 4th is (3, 4).
+ *   deg       scale degree counted from 0 (0 = tonic, 4 = dominant); the UI shows it as ^1–^7.
+ *   inv       inversion: 0 root position, 1 first, 2 second, 3 third.
+ *   r         a seeded random-number generator from rng(); same seed, same exercise. */
 (function (root) {
   "use strict";
 

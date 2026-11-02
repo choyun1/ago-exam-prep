@@ -23,6 +23,8 @@
       { clef: "bass", voices: [{ id: "T", events: events[1], stem: "up" }, { id: "B", events: events[0], stem: "down" }] }
     ];
   }
+  // melodic decoration settings for H.toEvents: chance of a passing tone, neighbor tone, and suspension per chord
+  function decor(passing, suspension) { return { passing, neighbor: passing * 0.4, suspension }; }
   function render(key, meter, staves, extra) { return H.renderABC(Object.assign({ key, meter, staves, brace: staves.length === 2 && !(extra && extra.noBrace) }, extra || {})); }
   function planFor(r, nPhrases, opts) {
     opts = opts || {};
@@ -86,7 +88,7 @@
     const key = randomKey(r, { maxAcc: 3 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, planFor(r, 2), meter);
-    const ev = H.toEvents(p, 0.3, r);
+    const ev = H.toEvents(p, decor(0.3, 0.25), r);
     return { title: "Sight-reading", prompt: o.prompt || "Play at sight on manuals, with pedal optional. " + T.keyShort(key) + ".",
       scores: [{ abc: render(key, meter, grandStaff(ev)) }], audio: audioFrom(ev, 72) };
   };
@@ -95,7 +97,7 @@
     const key = randomKey(r, { maxAcc: o.maxAcc || 3 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, planFor(r, o.phrases || 2), meter);
-    const ev = H.toEvents(p, 0.55, r);
+    const ev = H.toEvents(p, decor(0.55, 0.3), r);
     const staves = [
       { clef: "treble", name: "Man. I", voices: [{ id: "RH", events: ev[3] }] },
       { clef: "bass", name: "Man. II", voices: [{ id: "LH", events: ev[1] }] },
@@ -110,7 +112,7 @@
     const key = randomKey(r, { maxAcc: 4 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, planFor(r, 3), meter);
-    const ev = H.toEvents(p, 0.45, r);
+    const ev = H.toEvents(p, decor(0.45, 0.35), r);
     const clefs = o.cClefs ? ["alto1", "alto", "tenor", "bass"] : ["treble", "treble", "bass", "bass"];
     const names = ["S", "A", "T", "B"];
     const staves = [3, 2, 1, 0].map((vi, i) => ({ clef: clefs[i], name: names[i], voices: [{ id: names[i] + "v", events: ev[vi] }] }));
@@ -125,7 +127,7 @@
     const key = randomKey(r, { maxAcc: 3 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, planFor(r, o.phrases || 2), meter);
-    const ev = H.toEvents(p, o.embellish == null ? 0.25 : o.embellish, r);
+    const ev = H.toEvents(p, o.embellish === 0 ? 0 : decor(o.embellish == null ? 0.25 : o.embellish, 0.2), r);
     const choices = o.intervals; // [[label, semis]]
     const picks = r.shuffle(choices).slice(0, o.count || 2);
     const outs = picks.map(([label, semis]) => { const c = transposeChoice(key, semis); return { label, ...c }; });
@@ -141,8 +143,8 @@
     const meter = r.pick(["4/4", "3/4", "4/4"]);
     const p = passage(r, key, planFor(r, o.phrases || 2), meter);
     const sig = T.keySig(key);
-    const ev = H.toEvents(p, 0, r);
-    const bass = ev[0].map((e, i) => Object.assign({}, e, { ann: H.figures(p.chords[i], e.n, sig) }));
+    const ev = H.toEvents(p, { suspension: 0.45 }, r) // the bass stays undecorated, one note per chord;
+    const bass = ev[0].map((e) => Object.assign({}, e, { ann: H.figures(p.chords[e.ci], e.n, sig, ev.suspensions[e.ci]) }));
     const prompt = o.written
       ? "Realize the figured bass in writing: mostly three-voice right-hand chords above the given bass, following common-practice voice leading."
       : "Realize this figured bass at the organ (chorale or short instrumental movement). Pedals optional.";
@@ -157,7 +159,7 @@
     const key = randomKey(r, { maxAcc: 4, minorP: 0.35 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, planFor(r, o.phrases || 2), meter);
-    const ev = H.toEvents(p, 0, r);
+    const ev = H.toEvents(p, { suspension: 0.2 }, r);
     const nPh = p.phrases.length;
     const split = o.mixed ? Math.ceil(nPh / 2) : nPh; // phrases [0, split) melody-only; [split, n) bass-only
     const hide = (list, keep) => list.map((e) => Object.assign({}, e, { hidden: !keep(e) }));
@@ -190,7 +192,7 @@
     const key = randomKey(r, { maxAcc: 3, minorP: 0.35 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, planFor(r, o.phrases || 1), meter);
-    const ev = H.toEvents(p, o.embellish == null ? 0.4 : o.embellish, r);
+    const ev = H.toEvents(p, decor(o.embellish == null ? 0.4 : o.embellish, 0.15), r);
     const tempo = o.tempo || 72;
     let staves, solStaves, which;
     if (o.kind === "melody") {
@@ -245,7 +247,7 @@
     const meter = r.pick(["4/4", "3/4"]);
     const plan = planFor(r, 2);
     const p = passage(r, key, plan, meter);
-    const ev = H.toEvents(p, 0.35, r);
+    const ev = H.toEvents(p, decor(0.35, 0.3), r);
     const first = p.phrases[0].cadence;
     const qs = [
       { q: "What is the meter?", choices: ["4/4", "3/4"], answer: meter === "4/4" ? 0 : 1 },
@@ -258,57 +260,87 @@
   };
 
   // ---- fugue ----
-  // subject tokens: degree[#|b][+|-]:eighths  (# raise in minor, + / - octave)
+  // Melody tokens, used for fugue subjects and ground basses: "<degree><alt><octave>:<length>"
+  //   degree  1–7, counted in the key's own scale (natural minor in minor keys)
+  //   alt     optional "#" (a semitone higher) or "b" (a semitone lower), e.g. "7#" = raised leading tone in minor
+  //   octave  optional "+" / "-" per octave above / below the tonic's octave
+  //   length  in eighth notes (2 = quarter, 4 = half, 6 = dotted half)
+  // Example: "5:2 1+:2 7#:1" = dominant (quarter), tonic an octave up (quarter), raised 7th (eighth).
   const SUBJECTS = [
     { mode: "major", s: "1:2 3:2 5:2 4:1 3:1 2:1 3:1 4:1 2:1 7-:2 1:2" },
     { mode: "major", s: "5:2 1+:2 7:1 6:1 5:1 4:1 3:2 4:1 3:1 2:2 1:2" },
     { mode: "major", s: "1:3 2:1 3:1 4:1 5:2 3:1 1:1 6:2 5:1 4:1 3:2" },
-    { mode: "major", s: "5:4 6:1 5:1 4:1 3:1 2:2 5:2 1:2 7-:1 6-:1 7-:2" },
+    { mode: "major", s: "5:2 6:1 5:1 4:1 3:1 2:2 5:2 1:2 7-:1 6-:1 7-:2" },
     { mode: "major", s: "1:1 2:1 3:1 1:1 5:2 5-:2 6-:1 7-:1 1:1 2:1 3:2 2:2" },
-    { mode: "major", s: "1:2 5:3 4:1 3:1 2:1 1:1 7-:1 1:2 2:1 3:1 4:2 3:2" },
-    { mode: "minor", s: "1:2 5:2 6:3 5:1 4:1 3:1 2:1 1:1 7#-:2 1:2" },
-    { mode: "minor", s: "5:2 1+:2 7#:1 6:1 7#:2 1+:4 5:1 4:1 3:2" },
+    { mode: "major", s: "1:2 5:3 4:1 3:1 1:1 2:1 7-:1 1:2 2:1 3:1 4:1 3:1" },
+    { mode: "minor", s: "1:2 5:2 6:3 5:1 4:1 3:1 1:2 7#-:2 1:2" },
+    { mode: "minor", s: "5:2 1+:2 7#:1 6#:1 7#:2 1+:4 5:1 4:1 3:2" },
     { mode: "minor", s: "1:3 7#-:1 1:2 3:2 2:2 1:1 7#-:1 1:2 5-:2" },
     { mode: "minor", s: "1:2 3:2 2:1 1:1 7#-:1 1:1 2:2 5-:2 6-:2 5-:2" },
-    { mode: "minor", s: "5:2 6:2 5:2 4:2 3:3 2:1 1:2 7#-:2 1:4" },
+    { mode: "minor", s: "5:2 6:1 5:1 4:2 3:2 1:2 7#-:2 1:2 5-:2" },
     { mode: "minor", s: "1:1 2:1 3:1 4:1 5:2 6:2 2:2 7#-:3 1:1 1:2" }
   ];
   function parseTokens(s) {
     return s.split(/\s+/).map((tok) => {
-      const m = /^(\d)(#|b)?([+-]*):(\d+)$/.exec(tok);
+      const m = /^([1-7])(#|b)?([+-]*):(\d+)$/.exec(tok);
+      if (!m) throw new Error("bad melody token " + tok);
       const oct = (m[3].match(/\+/g) || []).length - (m[3].match(/-/g) || []).length;
-      return { deg: parseInt(m[1], 10) - 1, alt: m[2] || "", oct, dur: parseInt(m[4], 10) };
+      return { deg: parseInt(m[1], 10) - 1, alt: m[2] === "#" ? 1 : m[2] === "b" ? -1 : 0, oct, dur: parseInt(m[4], 10) };
     });
+  }
+  // Pitch of scale degree `deg` (0–6, may run past 6 or below 0) of `key`, `alt` semitones off,
+  // with the tonic placed in octave `baseOct` (A and B tonics drop an octave so lines stay in range).
+  function degreeNote(key, deg, alt, baseOct) {
+    const pc = T.degreePC(key, deg);
+    const tonicDia = (key.t.L >= 5 ? baseOct - 1 : baseOct) * 7 + key.t.L;
+    const d = tonicDia + deg;
+    return { L: pc.L, a: pc.a + alt, o: Math.floor(d / 7) };
   }
   function realize(tokens, key, baseOct) {
-    return tokens.map((t) => {
-      const pc = T.degreePC(key, t.deg, { raise7: t.alt === "#" && t.deg === 6, raise6: t.alt === "#" && t.deg === 5 });
-      if (t.alt === "b") pc.a -= 1;
-      const tonicDia = (key.t.L >= 5 ? baseOct - 1 : baseOct) * 7 + key.t.L;
-      const d = tonicDia + t.deg + t.oct * 7;
-      return { n: { L: pc.L, a: pc.a, o: Math.floor(d / 7) }, dur: t.dur };
-    });
+    return tokens.map((t) => ({ n: degreeNote(key, t.deg + t.oct * 7, t.alt, baseOct), dur: t.dur }));
   }
+
+  // Fugal answer. A real answer moves the whole subject up a 5th into the dominant key.
+  // A tonal answer is needed when ^5 appears in the subject's head (its opening run of ^1 and ^5):
+  // ^5 is answered by ^1 and ^1 by ^5. Notes answered "up a 4th" stay in the tonic key; the answer
+  // changes over to "up a 5th" (the mutation) at the first leap after the head, so the only interval
+  // that changes is a leap that grows or shrinks by one step. Every subject in SUBJECTS is written
+  // to have such a leap; test/music.js checks it.
   function answerFor(sub, key) {
-    // head = leading run of ^1 / ^5 tokens
     const toks = parseTokens(sub.s);
-    let headLen = 0; while (headLen < toks.length && (toks[headLen].deg === 0 || toks[headLen].deg === 4) && !toks[headLen].alt) headLen++;
+    let headLen = 0;
+    while (headLen < toks.length && (toks[headLen].deg === 0 || toks[headLen].deg === 4) && !toks[headLen].alt) headLen++;
     const tonal = toks.slice(0, headLen).some((t) => t.deg === 4);
     const dk = T.dominantKey(key);
     const subj = realize(toks, key, 4);
+    // which notes are answered up a 4th (in the tonic key) instead of up a 5th (in the dominant)
+    const upFourth = toks.map(() => false);
+    if (tonal) {
+      let inFourth = false;
+      toks.forEach((t, i) => {
+        if (i < headLen) inFourth = t.deg === 4;
+        else if (inFourth && Math.abs(T.dia(subj[i].n) - T.dia(subj[i - 1].n)) >= 2) inFourth = false;
+        upFourth[i] = inFourth;
+      });
+    }
     const ans = toks.map((t, i) => {
-      if (i < headLen && t.deg === 4) { // ^5 answered by ^1 (a 4th above)
-        const n = subj[i].n; return { n: T.transposeNote(n, 3, 5), dur: t.dur };
-      }
-      return realize([t], dk, 4)[0];
+      const deg = t.deg + t.oct * 7;
+      if (upFourth[i]) return { n: degreeNote(key, deg + 3, t.alt, 4), dur: t.dur };
+      return { n: shiftOctaveNear(degreeNote(dk, deg, t.alt, 4), subj[i].n, 4), dur: t.dur };
     });
-    // keep answer register sensible: shift so it begins within a 5th above/4th below the subject start
-    return { subj, ans, tonal };
+    return { subj, ans, tonal, upFourth };
   }
+  // put `n` in the octave that makes it `steps` diatonic steps above `ref`
+  function shiftOctaveNear(n, ref, steps) {
+    const want = T.dia(ref) + steps;
+    const o = n.o + Math.round((want - T.dia(n)) / 7);
+    return { L: n.L, a: n.a, o };
+  }
+
   G.fugue = function (r, o) {
     const sub = r.pick(SUBJECTS);
     const key = randomKey(r, { mode: sub.mode, maxAcc: 3 });
-    const { subj, ans, tonal } = answerFor(sub, key);
+    const { subj, ans, tonal, upFourth } = answerFor(sub, key);
     const voices = o.voices || 3;
     const vnames = voices === 4 ? ["soprano", "alto", "tenor", "bass"] : ["soprano", "alto", "bass"];
     const startVoice = r.pick(vnames);
@@ -316,25 +348,34 @@
     const shift = (evs, oct) => evs.map((e) => ({ n: { L: e.n.L, a: e.n.a, o: e.n.o + oct }, dur: e.dur }));
     const clefFor = (v) => (v === "bass" || v === "tenor" ? "bass" : "treble");
     const octFor = (v) => (v === "bass" ? -1 : v === "tenor" ? -1 : 0);
-    let prompt = "Write the exposition of a " + voices + "-voice fugue on this subject in " + T.keyShort(key) + ", with a consistent countersubject" + (voices === 4 ? " in invertible counterpoint" : "") + ". The subject begins in the " + startVoice + ".";
+    const dk = T.dominantKey(key);
+    let prompt = "Write the exposition of a " + voices + "-voice fugue on this subject in " + T.keyShort(key) +
+      ", with a consistent countersubject" + (voices === 4 ? " in invertible counterpoint" : "") + ". The subject begins in the " + startVoice + ".";
     if (o.episode) prompt += " Then write an episode leading to an entry in a related key.";
     if (o.analysis) prompt = "Fugue analysis: name the key, say whether the answer should be tonal or real, and give the first note of the answer. Then sketch the answer.";
-    return { title: o.analysis ? "Fugue analysis" : "Fugue", prompt, scores: [{ abc: one(shift(subj, octFor(startVoice)), clefFor(startVoice)), caption: "Subject" }],
-      solution: { text: "Answer: " + (tonal ? "tonal (the opening ^5 is answered by ^1, so the answer starts by keeping the tonic's 4th instead of moving to ^2)" : "real (exact transposition to the dominant)") + ".\nAnswer key region: " + T.keyShort(T.dominantKey(key)) + ".",
-        scores: [{ abc: one(ans), caption: "Answer (in the dominant)" }] },
-      audio: { notes: (() => { let t = 0; const spb = 60 / 84 / 2; return subj.map((e) => { const x = { midi: T.midi(e.n), start: t * spb, dur: e.dur * spb * 0.95 }; t += e.dur; return x; }); })(), tempo: 84 } };
+    const mutationAt = upFourth.lastIndexOf(true) + 2; // 1-based note number where the answer switches to the dominant
+    const why = tonal
+      ? "Tonal. The head of the subject has ^5, which is answered by ^1 (and ^1 by ^5), so the answer starts in " + T.keyShort(key) +
+        " and moves into " + T.keyShort(dk) + " at note " + mutationAt + ", where a leap changes by one step."
+      : "Real. The head of the subject has no ^5, so the answer is the subject moved exactly up a perfect 5th, into " + T.keyShort(dk) + ".";
+    return {
+      title: o.analysis ? "Fugue analysis" : "Fugue", prompt,
+      scores: [{ abc: one(shift(subj, octFor(startVoice)), clefFor(startVoice)), caption: "Subject" }],
+      solution: { text: "Key: " + T.keyShort(key) + ".\nAnswer: " + why + "\nThe answer begins on " + T.name(ans[0].n) + ".", scores: [{ abc: one(ans), caption: "Answer" }] },
+      audio: audioFrom([subj], 84)
+    };
   };
 
   // ---- improvisation ----
   const GROUNDS = [
-    { name: "descending tetrachord (lament)", mode: "minor", meter: "3/4", s: "1:6 7b-:6 6-:6 5-:6" },
-    { name: "chromatic lament", mode: "minor", meter: "3/4", s: "1:6 7-:6 7b-:6 6-:6 6b-:6 5-:6" },
-    { name: "passacaglia", mode: "minor", meter: "3/4", s: "1:4 7b-:2 6-:4 5-:2 4-:4 5-:2 1-:6" },
+    { name: "descending tetrachord (lament)", mode: "minor", meter: "3/4", s: "1:6 7-:6 6-:6 5-:6" },
+    { name: "chromatic lament", mode: "minor", meter: "3/4", s: "1:6 7#-:6 7-:6 6#-:6 6-:6 5-:6" },
+    { name: "passacaglia", mode: "minor", meter: "3/4", s: "1:4 7-:2 6-:4 5-:2 4-:4 5-:2 1-:6" },
     { name: "chaconne (major)", mode: "major", meter: "3/4", s: "1:6 5-:6 6-:6 3-:6 4-:6 1-:6 4-:6 5-:6" },
-    { name: "folia-type", mode: "minor", meter: "3/4", s: "1:6 5-:6 1:6 7b-:6 3:6 7b-:6 1:4 5-:2 5-:6" },
+    { name: "folia-type", mode: "minor", meter: "3/4", s: "1:6 5-:6 1:6 7-:6 3:6 7-:6 1:4 5-:2 5-:6" },
     { name: "bergamasca", mode: "major", meter: "4/4", s: "1:2 4:2 5:2 1:2" },
     { name: "walking ground", mode: "major", meter: "4/4", s: "1:2 3:2 4:2 5:2 6:2 4:2 5:2 5-:2 1:8" },
-    { name: "minor ground", mode: "minor", meter: "4/4", s: "1:2 3b:2 4:2 5:2 6b-:4 5-:4 1:8" }
+    { name: "minor ground", mode: "minor", meter: "4/4", s: "1:2 3:2 4:2 5:2 6-:4 5-:4 1:8" }
   ];
   const HYMN_TUNES = ["OLD HUNDREDTH", "ST. ANNE", "NICAEA", "LASST UNS ERFREUEN", "HYFRYDOL", "WINCHESTER NEW", "DUKE STREET", "EIN FESTE BURG", "WACHET AUF", "LOBE DEN HERREN",
     "DIVINUM MYSTERIUM", "VENI EMMANUEL", "PICARDY", "AURELIA", "REGENT SQUARE", "WESTMINSTER ABBEY", "CWM RHONDDA", "TALLIS' CANON", "ST. THEODULPH", "EASTER HYMN", "DUNDEE", "ITALIAN HYMN", "IN BABILONE", "ABBOT'S LEIGH"];
@@ -380,7 +421,7 @@
     // ternary (FAGO F6)
     const key = randomKey(r, { maxAcc: 3 });
     const p = passage(r, key, [{ cadence: "HC" }, { cadence: "PAC" }], r.pick(["4/4", "3/4"]));
-    const ev = H.toEvents(p, 0.5, r);
+    const ev = H.toEvents(p, decor(0.5, 0.3), r);
     return { title: "Improvisation: ternary form", prompt: "Improvise a piece of 3–4 minutes in ternary form (ABA) on this theme. The B section needs a clearly identifiable secondary theme in a contrasting key and texture.",
       scores: [{ abc: H.renderABC({ key, meter: p.meter, staves: [{ clef: "treble", voices: [{ id: "M", events: ev[3] }] }] }), caption: "Theme" }],
       solution: { text: "Plan: A in " + T.keyShort(key) + " (state the theme, develop briefly); B in " + T.keyShort(key.mode === "major" ? T.relMinor(key) : T.relMajor(key)) + " or the subdominant, new registration; retransition on a dominant pedal; A shortened, with a coda." } };
@@ -391,7 +432,7 @@
     const key = randomKey(r, { maxAcc: 3 });
     const meter = r.pick(["4/4", "3/4"]);
     const p = passage(r, key, [{ cadence: "HC" }], meter);
-    const ev = H.toEvents(p, 0.6, r);
+    const ev = H.toEvents(p, decor(0.6, 0.35), r);
     return { title: "Composition", prompt: "Continue and conclude this organ passage in about 16 measures. Keep the style and texture consistent and write idiomatically for the instrument; develop the opening motive and cadence clearly at the end.",
       scores: [{ abc: render(key, meter, grandStaff(ev)), caption: "Given opening" }],
       solution: { text: "Self-check: does it modulate and return? Is the motive developed (sequence, inversion, fragmentation)? Are the cadences clear? Is the texture playable by two hands and feet?" } };
@@ -437,13 +478,45 @@
     "Haydn, Piano Sonata in C major, Hob. XVI:35, first movement",
     "Mendelssohn, Organ Sonata No. 2, Grave–Adagio"
   ];
+  // ChM Ch4 is the analysis of a choral work. All public domain in the U.S.; scores on IMSLP or CPDL.
+  const CHORAL_PIECES = [
+    "Tallis, \"If ye love me\"",
+    "Byrd, Ave verum corpus",
+    "Victoria, O magnum mysterium (motet)",
+    "Palestrina, Missa Papae Marcelli, Kyrie",
+    "Schütz, \"Die mit Tränen säen\", SWV 378 (Geistliche Chormusik)",
+    "Bach, Jesu, meine Freude, BWV 227, first movement and the fugue \"Ihr aber seid nicht fleischlich\"",
+    "Mozart, Ave verum corpus, K. 618",
+    "Mendelssohn, \"Richte mich, Gott\", Op. 78 No. 2",
+    "Bruckner, Locus iste",
+    "Brahms, \"Wie lieblich sind deine Wohnungen\" (Ein deutsches Requiem, fourth movement)",
+    "Fauré, Cantique de Jean Racine, Op. 11",
+    "Stanford, Beati quorum via, Op. 38 No. 3",
+    "Parry, \"My soul, there is a country\" (Songs of Farewell)",
+    "Rachmaninoff, Bogoroditse Devo (All-Night Vigil, No. 6)"
+  ];
+  const ANALYSIS_QUESTIONS = {
+    CAGO: ["Identify the form (binary or ternary) and chart the phrase structure.", "Mark every cadence and name its type.",
+      "Identify the thematic material and any return.", "Name two significant harmonic features with measure numbers (e.g., a secondary dominant, a Neapolitan).",
+      "Suggest a composer and stylistic period, giving reasons."],
+    AAGO: ["Give an opinion on the composer and approximate date of composition. (2 points)", "Identify the overall form. (1 point)",
+      "Using measure numbers, chart the main sections, tonal centers, and phrase endings, labeling cadences PAC, IAC, HC, or DC. (10–12 points)",
+      "Provide a Roman-numeral analysis of one passage that tonicizes several keys. (9–10 points)",
+      "Answer short questions on compositional devices (sequence, pedal point, augmented sixth, stretto) and performance markings. (3 points)"],
+    ChM: ["Chart the form against the text: where each line or verse of text begins, and how the music marks it.",
+      "Describe the texture section by section (homophony, points of imitation, canon, polychoral writing), with measure numbers.",
+      "Mark the main cadences and tonal (or modal) centers, and name one striking harmony and how it is reached.",
+      "Show how the composer sets the words: syllabic or melismatic writing, word painting, and stress.",
+      "Suggest a composer and period, and name two things a choir would need to rehearse in this piece."]
+  };
   G.analysis = function (r, o) {
-    const piece = r.pick(ANALYSIS_PIECES);
-    const qs = o.level === "CAGO"
-      ? ["Identify the form (binary or ternary) and chart the phrase structure.", "Mark every cadence and name its type.", "Identify the thematic material and any return.", "Name two significant harmonic features with measure numbers (e.g., a secondary dominant, a Neapolitan).", "Suggest a composer and stylistic period, giving reasons."]
-      : ["Give an opinion on the composer and approximate date of composition. (2 points)", "Identify the overall form. (1 point)", "Using measure numbers, chart the main sections, tonal centers, and phrase endings, labeling cadences PAC, IAC, HC, or DC. (10–12 points)", "Provide a Roman-numeral analysis of one passage that tonicizes several keys. (9–10 points)", "Answer short questions on compositional devices (sequence, pedal point, augmented sixth, stretto) and performance markings. (3 points)"];
-    return { title: "Analysis", prompt: "Score to use (IMSLP has a public-domain edition): " + piece + ". Pretend you don't know the composer; answer as on the exam:\n" + qs.map((q, i) => (i + 1) + ". " + q).join("\n"), scores: [],
-      solution: { text: "Time yourself: about 70 minutes for this item at AAGO level. Check your answers against a published analysis or with a colleague." } };
+    const choral = o.level === "ChM";
+    const piece = r.pick(choral ? CHORAL_PIECES : ANALYSIS_PIECES);
+    const qs = ANALYSIS_QUESTIONS[o.level] || ANALYSIS_QUESTIONS.AAGO;
+    const where = choral ? "IMSLP or CPDL have public-domain editions" : "IMSLP has a public-domain edition";
+    return { title: choral ? "Choral analysis" : "Analysis",
+      prompt: "Score to use (" + where + "): " + piece + ". Pretend you don't know the composer; answer as on the exam:\n" + qs.map((q, i) => (i + 1) + ". " + q).join("\n"), scores: [],
+      solution: { text: "Time yourself: about " + (choral ? "35" : "70") + " minutes for this item. Check your answers against a published analysis or with a colleague." } };
   };
   const ESSAYS = [
     "Trace how orchestral imitative stops on early 20th-century American instruments shaped the repertoire written for them. Discuss at least two builders and three composers.",
@@ -470,7 +543,7 @@
     const ens = r.pick(ENSEMBLES);
     const key = randomKey(r, { maxAcc: 3 });
     const p = passage(r, key, planFor(r, 2), "4/4");
-    const ev = H.toEvents(p, 0.4, r);
+    const ev = H.toEvents(p, decor(0.4, 0.3), r);
     return { title: "Orchestration", prompt: "Orchestrate this keyboard passage for " + ens + ". Write transposing instruments in their written keys and stay within practical ranges.",
       scores: [{ abc: render(key, "4/4", grandStaff(ev)) }],
       solution: { text: "Check: B♭ clarinet and trumpet written a major 2nd higher; A clarinet a minor 3rd higher; F horn and English horn a perfect 5th higher; double bass an octave higher than sounding." } };
@@ -494,7 +567,6 @@
     return { title: "Rehearsal and direction", prompt: "The examiners ask you to rehearse a section of " + piece + " with four singers for about 8 minutes. Plan your rehearsal: what you will fix first, how you will demonstrate, and how you will check it worked. Focus areas they will listen for: " + pick.join("; ") + ".", scores: [],
       solution: { text: "Strong rehearsals: start by singing through, diagnose, fix with one specific instruction at a time, re-sing, and end with a run in context. Keep talking to a minimum and conduct the pulse clearly." } };
   };
-  G.knowledge = function (r, o) { return { title: o.title || "Knowledge", prompt: "Answer from the question bank (see Daily quiz for scored practice). Topics: " + o.topics.join(", ") + ".", scores: [], factQuiz: { topics: o.topics, level: o.level, n: o.n || 8 } }; };
 
   // The rules each generator applies, so every exercise can cite them. The exam item it follows
   // comes from js/levels.js (AGO Professional Certification Requirements for 2027).
@@ -518,8 +590,7 @@
     essay: "Topic as stated for FAGO F9 in the 2027 requirements",
     orchestration: "Samuel Adler, The Study of Orchestration (4th ed., 2016): transpositions and ranges",
     choralComposition: "Topic as stated for FAGO F12 in the 2027 requirements",
-    rehearsal: "Repertoire as listed for ChM Ch1 in the 2027 requirements; " + "Collins, Teaching Choral Music (2nd ed., 1999)",
-    knowledge: "See each question's source"
+    rehearsal: "Repertoire as listed for ChM Ch1 in the 2027 requirements; " + "Collins, Teaching Choral Music (2nd ed., 1999)"
   };
 
   const api = { G, SRC, randomKey, passage, render, grandStaff, audioFrom, SUBJECTS, answerFor, parseTokens, realize, transposeChoice, GROUNDS, HYMN_TUNES, CHANTS, analysisText };

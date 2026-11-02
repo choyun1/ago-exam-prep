@@ -46,9 +46,5 @@
     const m = (p, o) => T.midi({ L: p.L, a: p.a, o });
     return [m(tonic, 3), m(third, 4), m(fifth, 4), m(tonic, 5)].map((x) => ({ midi: x, start: 0, dur: 1.4 }));
   }
-  function withTonic(key, T, notes, gap) {
-    const pre = tonicChord(key, T); const off = 1.4 + (gap || 0.8);
-    return pre.concat(notes.map((n) => Object.assign({}, n, { start: n.start + off })));
-  }
-  root.OrganAudio = { play, stop, tonicChord, withTonic, available: () => !!(root.AudioContext || root.webkitAudioContext) };
+  root.OrganAudio = { play, stop, tonicChord, available: () => !!(root.AudioContext || root.webkitAudioContext) };
 })(typeof window !== "undefined" ? window : globalThis);

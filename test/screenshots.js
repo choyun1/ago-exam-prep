@@ -1,3 +1,6 @@
+// Opens the app in Chromium at desk and phone sizes, clicks through every view and a mock exam for every level,
+// saves screenshots to test/*.png (not committed), and exits with an error if the page logs any error.
+// Run from the repo root: `npm run screenshots`.
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const errs=[];
@@ -21,4 +24,5 @@ const { chromium } = require('playwright');
     for (const L of ['SPC','CAGO','ChM','FAGO']) { await p.goto('file://'+process.cwd()+'/index.html#exam'); await p.click('#knob-'+L); await p.waitForTimeout(200); await p.click('#mock-all'); await p.waitForTimeout(900); }
   }
   console.log('errors', errs.slice(0,20)); await b.close();
+  if (errs.length) process.exit(1);
 })();
