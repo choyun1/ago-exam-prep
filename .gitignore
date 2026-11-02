@@ -1,0 +1,6 @@
+# Never commit AGO-copyrighted past exams or personal study materials
+past-exams/
+*.pdf
+dist/
+test/*.png
+node_modules/
