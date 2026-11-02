@@ -10,3 +10,12 @@ for (let s=1;s<=25;s++){ for (const [f,o] of calls){ n++; try{ const x=G[f](Theo
 console.log({n,err,ms:Date.now()-t0});
 const f=G.fugue(Theory.rng(5),{voices:3}); console.log(f.prompt, "\n", f.solution.text); console.log(f.scores[0].abc); console.log(f.solution.scores[0].abc);
 const fb=G.figuredBass(Theory.rng(9),{}); console.log(fb.scores[0].abc);
+// citations: every fact, drill, and generator must name its source
+require("../js/facts.js"); require("../js/levels.js");
+const noSrc = AGO_FACTS.filter((f) => !f.src).map((f) => f.id);
+const noDrillSrc = Object.keys(D).filter((k) => { const q = D[k](Theory.rng(3)); return !q.src || !q.trains; });
+const noGenSrc = Object.keys(G).filter((k) => !Gen.SRC[k]);
+const genUsed = AGO_LEVELS.LEVELS.flatMap((L) => L.sections.flatMap((s) => s.items)).flatMap((it) => (it.gen ? [it.gen].concat(it.alt || []) : [])).map((g) => g[0]);
+const unknownGen = genUsed.filter((g) => !G[g]);
+console.log("citations", { noSrc, noDrillSrc, noGenSrc, unknownGen });
+if (noSrc.length || noDrillSrc.length || noGenSrc.length || unknownGen.length) process.exit(1);

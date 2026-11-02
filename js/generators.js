@@ -496,7 +496,33 @@
   };
   G.knowledge = function (r, o) { return { title: o.title || "Knowledge", prompt: "Answer from the question bank (see Daily quiz for scored practice). Topics: " + o.topics.join(", ") + ".", scores: [], factQuiz: { topics: o.topics, level: o.level, n: o.n || 8 } }; };
 
-  const api = { G, randomKey, passage, render, grandStaff, audioFrom, SUBJECTS, answerFor, parseTokens, realize, transposeChoice, GROUNDS, HYMN_TUNES, CHANTS, analysisText };
+  // The rules each generator applies, so every exercise can cite them. The exam item it follows
+  // comes from js/levels.js (AGO Professional Certification Requirements for 2027).
+  const AS = "Aldwell, Schachter & Cadwallader, Harmony and Voice Leading (5th ed., 2019): four-part voice leading (no parallel 5ths/8ves, resolved leading tones and 7ths)";
+  const SRC = {
+    sightReadGrand: AS,
+    sightReadTrio: AS + "; trio texture modeled on Bach, Trio Sonatas BWV 525–530",
+    openScore: AS + "; R. O. Morris & H. Ferguson, Preparatory Exercises in Score Reading (1931)",
+    transposition: AS + "; Grove Music Online, s.v. \"Transposition\"",
+    figuredBass: "Figures derived from the voiced chord (" + "Kostka, Payne & Almén, Tonal Harmony, figured bass); F. T. Arnold, The Art of Accompaniment from a Thorough-Bass (1931)",
+    harmonize: AS + "; Frackenpohl, Harmonization at the Piano (6th ed., 1991)",
+    progressions: AS + "; Frackenpohl, Harmonization at the Piano",
+    dictation: AS,
+    errorDetection: AS,
+    auralPerception: "Kostka, Payne & Almén, Tonal Harmony: cadences and chord functions",
+    fugue: "Tonal/real answer rules: Gauldin, A Practical Approach to 18th-Century Counterpoint (1988); Gedalge, Traité de la fugue (1901)",
+    improv: "Gerre Hancock, Improvising: How to Master the Art (1994); Jeffrey Brillhart, Breaking Free (2011)",
+    compositionStart: AS,
+    cantusFirmus: "Fux, Gradus ad Parnassum (1725), trans. Mann; Jeppesen, Counterpoint (1939)",
+    analysis: "Caplin, Classical Form (1998); Kostka, Payne & Almén, Tonal Harmony",
+    essay: "Topic as stated for FAGO F9 in the 2027 requirements",
+    orchestration: "Samuel Adler, The Study of Orchestration (4th ed., 2016): transpositions and ranges",
+    choralComposition: "Topic as stated for FAGO F12 in the 2027 requirements",
+    rehearsal: "Repertoire as listed for ChM Ch1 in the 2027 requirements; " + "Collins, Teaching Choral Music (2nd ed., 1999)",
+    knowledge: "See each question's source"
+  };
+
+  const api = { G, SRC, randomKey, passage, render, grandStaff, audioFrom, SUBJECTS, answerFor, parseTokens, realize, transposeChoice, GROUNDS, HYMN_TUNES, CHANTS, analysisText };
   root.Gen = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

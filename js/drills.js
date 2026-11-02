@@ -185,7 +185,29 @@
     return { topic: "ear", kind: "Ear: intervals", q: "Listen. Name the " + (harm ? "harmonic" : "melodic") + " interval.", audio: { notes }, ...mc(r, full(nm), ivs.map((x) => full(x[0])), 5), explain: "It was a " + full(nm).toLowerCase() + "." };
   };
 
-  const api = { D, MODES };
+  // Where each drill's answer comes from (the rule it applies) and which 2027 exam items it supports.
+  const KPA = "Kostka, Payne & Almén, Tonal Harmony (8th ed., 2018)";
+  const SRC = {
+    keySignature: { rule: KPA + ", key signatures and the circle of fifths", items: "SPC S2; CAGO C7; AAGO A5; FAGO F5 (transposition)" },
+    interval: { rule: KPA + ", intervals", items: "CAGO C9; AAGO A10 (dictation)" },
+    figuredToRoman: { rule: KPA + ", figured bass and inversions; F. T. Arnold, The Art of Accompaniment from a Thorough-Bass (1931)", items: "CAGO C12; AAGO A7 (continuo realization)" },
+    clefReading: { rule: "Grove Music Online, s.v. \"Clef\"; R. O. Morris & H. Ferguson, Preparatory Exercises in Score Reading (1931)", items: "FAGO F3 (clef reading)" },
+    transposeKey: { rule: KPA + ", key signatures; transposition by interval", items: "SPC S2; CAGO C7; AAGO A5; FAGO F5 (transposition)" },
+    keyRelations: { rule: KPA + ", closely related keys and modulation", items: "CAGO C8; AAGO A2 (modulating improvisation and interludes)" },
+    chantMode: { rule: "Grove Music Online, s.v. \"Mode\" §II (finals and dominants of the eight modes); Liber Usualis (1961)", items: "ChM Ch5 (Gregorian chant)" },
+    mutation: { rule: "Stevens Irwin, Dictionary of Pipe Organ Stops (2nd ed., 1983): pitch of a rank = 8′ ÷ harmonic number", items: "AAGO A11 (aural perception: registration)" },
+    orchestral: { rule: "Samuel Adler, The Study of Orchestration (4th ed., 2016), transposing instruments", items: "FAGO F11 (orchestration)" },
+    tonalAnswer: { rule: "Robert Gauldin, A Practical Approach to 18th-Century Counterpoint (1988), fugal answer; Gedalge, Traité de la fugue (1901)", items: "CAGO C11; AAGO A9; FAGO F8 (fugue)" },
+    earCadence: { rule: KPA + ", cadences", items: "CAGO C10; AAGO A11 (aural perception)" },
+    earChord: { rule: KPA + ", triads and seventh chords", items: "CAGO C10; AAGO A11; ChM Ch3 (aural tests)" },
+    earInterval: { rule: KPA + ", intervals", items: "CAGO C9; AAGO A10; FAGO F10 (dictation)" }
+  };
+  for (const k of Object.keys(SRC)) {
+    const f = D[k];
+    D[k] = function (r) { const q = f(r); q.src = SRC[k].rule; q.trains = SRC[k].items; return q; };
+  }
+
+  const api = { D, MODES, SRC };
   root.Drills = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);
