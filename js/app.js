@@ -4,7 +4,8 @@
   const T = window.Theory,
     Gen = window.Gen,
     Drills = window.Drills,
-    Audio = window.OrganAudio;
+    Audio = window.OrganAudio,
+    Quiz = window.Quiz;
   const { LEVELS, DAILY, RESOURCES, REQUIREMENTS, LINKS } = window.AGO_LEVELS;
   const FACTS = window.AGO_FACTS || [];
   const QUIZ_LEN = 12;
@@ -133,40 +134,13 @@
         : "";
   }
 
-  // ---------- spaced repetition for facts ----------
-  const INTERVALS = [0, 1, 3, 7, 21, 60];
+  // ---------- spaced repetition for facts (selection rules in js/quiz.js) ----------
   function srs() {
     return store.get("srs", {});
   }
-  function pickFacts(r, n, topicWeights) {
-    const s = srs(),
-      today = todayStr();
-    const wanted = new Set(topicWeights.map(([t]) => t));
-    const pool = FACTS.filter((f) => wanted.has(f.topic));
-    const due = r.shuffle(pool.filter((f) => s[f.id] && s[f.id].due <= today));
-    const fresh = r.shuffle(pool.filter((f) => !s[f.id]));
-    const out = [];
-    for (const f of due) {
-      if (out.length >= n) break;
-      out.push(f);
-    }
-    let guard = 0;
-    while (out.length < n && fresh.length && guard++ < 500) {
-      const t = r.weighted(topicWeights);
-      const i = fresh.findIndex((f) => f.topic === t);
-      if (i >= 0) out.push(fresh.splice(i, 1)[0]);
-      else if (!fresh.some((f) => wanted.has(f.topic))) break;
-    }
-    // fall back to anything not yet chosen
-    const rest = r.shuffle(pool.filter((f) => !out.includes(f)));
-    while (out.length < n && rest.length) out.push(rest.pop());
-    return out;
-  }
   function gradeFact(id, correct) {
     const s = srs();
-    const cur = s[id] || { box: 0 };
-    const box = correct ? Math.min(cur.box + 1, INTERVALS.length - 1) : 0;
-    s[id] = { box, due: addDays(todayStr(), correct ? INTERVALS[box] : 1) };
+    s[id] = Quiz.grade(s[id], correct, todayStr());
     store.set("srs", s);
   }
   function factToQ(f, r) {
@@ -207,11 +181,19 @@
     const r = T.rng(T.hashString(seedStr));
     const mix = DAILY[lvl];
     const nFacts = FACTS.length && mix.facts.length ? Math.round(QUIZ_LEN / 2) : 0;
-    const qs = pickFacts(r, nFacts, mix.facts).map((f) => factToQ(f, r));
-    while (qs.length < QUIZ_LEN) {
+    // fewer than nFacts when nothing new or due is left; drills fill the rest rather than repeating questions
+    const qs = Quiz.pickFacts(r, FACTS, nFacts, mix.facts, srs(), todayStr()).map((f) => factToQ(f, r));
+    // a drill can come out the same twice (e.g. the same key signature), so skip exact repeats within a quiz
+    const seen = new Set();
+    let tries = 0;
+    while (qs.length < QUIZ_LEN && tries++ < QUIZ_LEN * 20) {
       const kind = r.weighted(mix.drills);
       try {
-        qs.push(Drills.D[kind](r));
+        const d = Drills.D[kind](r);
+        const key = JSON.stringify([d.q, d.abc, d.audio, d.choices[d.answer]]);
+        if (seen.has(key) && tries < QUIZ_LEN * 10) continue;
+        seen.add(key);
+        qs.push(d);
       } catch (e) {
         console.warn(kind, e);
       }

@@ -6,7 +6,7 @@ Use it online at https://choyun1.github.io/ago-exam-prep/, or open `index.html` 
 
 ## What it does
 
-- **Daily quiz:** 12 questions a day for the selected level, half from a curated bank of about 300 knowledge questions (chant, hymnody, liturgy, registration, organ history and repertoire, choral repertoire, orchestration) and half from generated drills (figured bass, intervals, C clefs, tonal answers, transposition keys, chant modes, orchestral transpositions, and ear training for cadences, chord qualities, and intervals with built-in organ-tone playback). Missed questions come back the next day; known ones space out to 3, 7, 21, and 60 days. Progress is stored in your browser.
+- **Daily quiz:** 12 questions a day for the selected level, half from a curated bank of about 300 knowledge questions (chant, hymnody, liturgy, registration, organ history and repertoire, choral repertoire, orchestration) and half from generated drills (figured bass, intervals, C clefs, tonal answers, transposition keys, chant modes, orchestral transpositions, and ear training for cadences, chord qualities, and intervals with built-in organ-tone playback). Missed questions come back the next day; right answers space out to 3, 7, 16, 35, and 90 days. Reviews take at most half of a quiz's knowledge questions so new ones keep coming, no question repeats on the same day (extra rounds included), and look-alike questions (such as the reciting tones of two modes) never share a quiz. When nothing new or due is left, drills fill the gap. Progress is stored in your browser.
 - **Exam items:** every item of every exam with points, format, and study advice. Items that can be generated produce a new exercise each time, with a solution: open-score and trio sight-reading, transposition, figured-bass realization, melody/unfigured-bass harmonization, progressions, dictation with audio, error detection, fugue subjects with computed tonal or real answers, ground basses, modulating-phrase and ternary improvisation themes, cantus firmi, analysis assignments, essay and orchestration prompts, and ChM rehearsal scenarios. "Generate a full mock exam" fills every item at once.
 - **Study plan:** a phased timeline from today to the exam date, a weekly rotation of keyboard skills, and the AGO's 2027 resource list.
 
@@ -55,6 +55,7 @@ Fugue answers are computed from the subject: real answers move up a perfect 5th;
 | `js/drills.js` | auto-graded daily drills |
 | `js/levels.js` | 2027 requirements, study advice, daily mix per level |
 | `js/facts.js` | the knowledge-question bank (original wording) |
+| `js/quiz.js` | which knowledge questions go into a quiz, and spaced repetition |
 | `js/audio.js` | small additive organ synth (Web Audio) |
 | `js/app.js` | interface |
 

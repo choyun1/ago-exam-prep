@@ -6,7 +6,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 src = (root / "index.html").read_text()
 css = (root / "css/style.css").read_text()
 body = re.search(r"<!--BODY-->(.*)<!--/BODY-->", src, re.S).group(1)
-order = ["theory", "harmony", "generators", "drills", "audio", "levels", "facts", "app"]
+order = ["theory", "harmony", "generators", "drills", "audio", "levels", "facts", "quiz", "app"]
 js = "\n".join((root / f"js/{n}.js").read_text() for n in order)
 assert "</script" not in js.lower()
 fonts = re.search(r'<link rel="stylesheet" href="(https://fonts[^"]+)">', src).group(1)

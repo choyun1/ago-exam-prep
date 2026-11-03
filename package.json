@@ -4,7 +4,7 @@
   "description": "Practice for the American Guild of Organists certification exams. No build step; open index.html.",
   "license": "MIT",
   "scripts": {
-    "test": "node test/smoke.js && node test/check_voicing.js && node test/music.js",
+    "test": "node test/smoke.js && node test/quiz.js && node test/check_voicing.js && node test/music.js",
     "screenshots": "node test/screenshots.js",
     "build": "python3 -I scripts/build-single.py"
   }
