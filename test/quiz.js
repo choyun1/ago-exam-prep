@@ -55,7 +55,7 @@ function simulate(level, pRight, days, extraEvery) {
 
 const results = [];
 for (const level of Object.keys(AGO_LEVELS.DAILY)) {
-  if (!AGO_LEVELS.DAILY[level].facts.length) continue;
+  if (!AGO_LEVELS.DAILY[level] || !AGO_LEVELS.DAILY[level].facts.length) continue;
   for (const p of [0.6, 0.9]) results.push(simulate(level, p, 120, 5));
 }
 for (const x of results) {

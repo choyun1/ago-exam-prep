@@ -13,7 +13,7 @@
     {
       id: "SPC", agoPage: "https://old.agohq.org/service-playing-test/", examDate: "2027-03-31", name: "Service Playing", short: "SPC", date: "Any date Oct. 1, 2026 – Mar. 31, 2027", deadline: "Application closes Mar. 1, 2027", fee: "$250",
       where: "Any chapter with a suitable organ (your own church organ is allowed) and a recording setup.",
-      pass: "More than 50% on every item and more than 70% overall.",
+      eligibility: "Any order: no other certificate needed.", pass: "More than 50% on every item and more than 70% overall.",
       sections: [{ name: "Service (one sitting)", items: [
         { id: "S1", name: "Prelude repertoire", pts: 20, kind: "rep", guide: "One piece from List A, B, or C, polished. Record yourself weekly and listen the next day for steadiness and articulation." },
         { id: "S2", name: "Opening hymn in two transpositions", pts: 20, kind: "keyboard", gen: ["transposition", { intervals: iv.M2, count: 2, phrases: 2, embellish: 0, original: false }], guide: "The booklet names the two keys. Practice each stanza in both keys until you can lead at tempo with no hesitation. Think in scale degrees and intervals, not new note names." },
@@ -29,7 +29,7 @@
     },
     {
       id: "CAGO", agoPage: "https://old.agohq.org/ago-colleague-certification/", examDate: "2027-05-14", name: "Colleague", short: "CAGO", date: "Fri., Nov. 13, 2026 or Fri., May 14, 2027", deadline: "May sitting: application Jan. 1 – Mar. 1, 2027", fee: "$350 (section $200)",
-      where: "Any chapter, on an organ you don't normally play.", pass: "More than 50% on every item and more than 70% per section.",
+      where: "Any chapter, on an organ you don't normally play.", eligibility: "Any order: no other certificate needed.", pass: "More than 50% on every item and more than 70% per section.",
       sections: [
         { name: "Section 1: Practical", items: [
           { id: "C1", name: "Repertoire (Lists A, B, C)", pts: 60, kind: "rep", guide: "One piece from each list. The examiners hear registration as well as notes: plan registrations for an unfamiliar organ, with alternatives." },
@@ -52,7 +52,7 @@
     },
     {
       id: "AAGO", agoPage: "https://old.agohq.org/associateship-certification/", examDate: "2027-06-03", name: "Associateship", short: "AAGO", date: "Thu., June 3 – Fri., June 4, 2027", deadline: "Application Jan. 1 – Apr. 1, 2027", fee: "$475 (section $300)",
-      where: "Practical at a designated exam center with two examiners; written may be taken at any chapter.", pass: "More than 50% on every item and more than 70% per section. Passed sections count for five years.",
+      where: "Practical at a designated exam center with two examiners; written may be taken at any chapter.", eligibility: "Any order: no other certificate needed. Required at least a year before the FAGO.", pass: "More than 50% on every item and more than 70% per section. Passed sections count for five years.",
       sections: [
         { name: "Section 1: Practical", items: [
           { id: "A1", name: "Repertoire (Lists A–D, one slow movement)", pts: 80, kind: "rep", guide: "Four pieces in recital order, exactly one marked slow movement. Have them performance-ready by March so April and May go to keyboard skills." },
@@ -76,7 +76,7 @@
     },
     {
       id: "ChM", agoPage: "https://old.agohq.org/choirmaster/", examDate: "2027-06-02", name: "Choir Master", short: "ChM", date: "Wed., June 2, 2027", deadline: "Application Jan. 1 – Apr. 1, 2027", fee: "$500 (section $300)",
-      where: "Practical at a designated exam center with a live ensemble; written at any chapter.", pass: "More than 50% on every item and more than 70% per section.",
+      where: "Practical at a designated exam center with a live ensemble; written at any chapter.", eligibility: "Any order: no other certificate needed. A separate choral track, not a step after the AAGO.", pass: "More than 50% on every item and more than 70% per section.",
       sections: [
         { name: "Section 1: Practical", items: [
           { id: "Ch1", name: "Rehearsal and direction", pts: 120, kind: "choir", gen: ["rehearsal", {}], guide: "Palestrina Sicut cervus/Sitivit, Brahms Geistliches Lied, and one of Britten Jubilate in C, Finzi I Praise the Tender Flower, or French Tantum ergo. Examiners choose sections; plan specific fixes for each." },
@@ -96,7 +96,7 @@
     },
     {
       id: "FAGO", agoPage: "https://old.agohq.org/fellowship-certification/", examDate: "2027-06-03", name: "Fellowship", short: "FAGO", date: "Thu., June 3 – Fri., June 4, 2027", deadline: "AAGO must be earned at least a year earlier", fee: "$475 (section $300)",
-      where: "Practical at a designated exam center with two examiners; written at any chapter.", pass: "More than 50% on every item and more than 70% per section.",
+      where: "Practical at a designated exam center with two examiners; written at any chapter.", eligibility: "The AAGO (or ARCO/ARCCO) must be held at least a year before this exam.", pass: "More than 50% on every item and more than 70% per section.",
       sections: [
         { name: "Section 1: Practical", items: [
           { id: "F1", name: "Repertoire (Lists A–D, one slow movement)", pts: 100, kind: "rep", guide: "Four pieces in recital order, exactly one slow movement." },
@@ -122,15 +122,18 @@
 
   // daily-quiz mix per level: fact topics and drill kinds with weights
   const DAILY = {
-    // SPC is played entirely at the console (S1–S10), so its quiz is keyboard-skill drills only.
-    SPC: { facts: [], drills: [["transposeKey", 4], ["keySignature", 3], ["interval", 1]],
-      note: "The SPC is all at the console: there is no written or general-knowledge section. This quiz only drills the keys you need for the S2 transpositions." },
+    // SPC is played entirely at the console (S1–S10): no written or ear section, so no daily quiz.
+    SPC: null,
     // CAGO's written section (C9–C13) is ear tests, fugue analysis, continuo, and form analysis: no general-knowledge questions.
-    CAGO: { facts: [["theory", 2], ["fugue", 2]], drills: [["figuredToRoman", 3], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 1], ["earInterval", 1], ["interval", 1], ["transposeKey", 2], ["keyRelations", 1]],
+    CAGO: { facts: [["theory", 2], ["fugue", 2]], drills: [["missingTone", 3], ["earInterval", 1], ["earCadence", 2], ["earChord", 1], ["nonChordTone", 2], ["tonalAnswer", 1], ["fugueEntry", 2], ["figuredToRoman", 3], ["formType", 2]],
       note: "The CAGO written section (2 hours) covers dictation, aural perception, fugue analysis, continuo, and form analysis only, so this quiz sticks to those skills." },
-    AAGO: { facts: [["registration", 3], ["organ-rep", 3], ["organ-history", 2], ["theory", 1], ["fugue", 1], ["performance", 1]], drills: [["figuredToRoman", 3], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 2], ["earInterval", 1], ["transposeKey", 2], ["mutation", 1], ["clefReading", 1]] },
+    // AAGO's written and ear items are A8–A12; A11 asks about registration, composer and nationality, so those topics stay.
+    AAGO: { facts: [["registration", 3], ["organ-rep", 2], ["theory", 1], ["fugue", 1]], drills: [["formType", 1], ["nonChordTone", 2], ["suspensionType", 3], ["tonalAnswer", 1], ["fugueEntry", 2], ["missingTone", 2], ["earInterval", 1], ["earCadence", 1], ["earChord", 1], ["mutation", 1], ["figuredToRoman", 1]],
+      note: "Built from the written and ear items (A8–A12): analysis, fugue, dictation, and aural perception, including registration and repertoire questions." },
     ChM: { facts: [["chant", 3], ["hymnody", 3], ["liturgy", 3], ["choir", 2], ["choral-rep", 3], ["history", 1]], drills: [["chantMode", 3], ["earCadence", 1], ["earChord", 1], ["figuredToRoman", 1], ["keyRelations", 1]] },
-    FAGO: { facts: [["orchestration", 2], ["counterpoint", 2], ["organ-history", 2], ["organ-rep", 2], ["registration", 1], ["history", 1]], drills: [["orchestral", 3], ["clefReading", 3], ["tonalAnswer", 2], ["earChord", 2], ["figuredToRoman", 1], ["chantMode", 1]] }
+    // FAGO's written and ear items are F7–F12: counterpoint, fugue, essay, dictation, orchestration, composition.
+    FAGO: { facts: [["orchestration", 2], ["counterpoint", 2]], drills: [["speciesMotion", 3], ["tonalAnswer", 1], ["fugueEntry", 1], ["earChord", 1], ["earInterval", 1], ["missingTone", 1], ["orchestral", 2], ["instrumentRange", 2], ["suspensionType", 1]],
+      note: "Built from the written and ear items (F7–F12): counterpoint, fugue, dictation, and orchestration." },
   };
 
   const RESOURCES = {
