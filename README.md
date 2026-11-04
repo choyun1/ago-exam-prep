@@ -2,6 +2,8 @@
 
 Practice for the American Guild of Organists certification exams: Service Playing (SPC), Colleague (CAGO), Associateship (AAGO), Choir Master (ChM), and Fellowship (FAGO), following the **2027** published requirements.
 
+The levels are separate exams, not a ladder: SPC, CAGO, AAGO, and ChM can be taken in any order, and the FAGO needs the AAGO held at least a year first. Each level's exam page shows this.
+
 Use it online at https://choyun1.github.io/ago-exam-prep/, or open `index.html` in a browser. There is no build step and no server.
 
 ## Running it
@@ -28,7 +30,7 @@ Every question and exercise shows where its answer comes from.
 
 `test/smoke.js` fails if a question, drill, or generator has no citation.
 
-The daily quiz only asks what each exam tests. The SPC is played entirely at the console, so its quiz is transposition-key drills. The CAGO written section (C9–C13) is ear tests, fugue analysis, continuo, and form analysis, so its quiz has no general-knowledge questions.
+The daily quiz only asks what each exam tests. The SPC is played entirely at the console, so it has no daily quiz and opens on its exam items. The CAGO written section (C9–C13) is ear tests, fugue analysis, continuo, and form analysis, so its quiz has no general-knowledge questions.
 
 ## How the music is generated
 

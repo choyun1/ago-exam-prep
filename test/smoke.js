@@ -53,12 +53,14 @@ for (const f of AGO_FACTS) {
 }
 const topics = new Set(AGO_FACTS.map((f) => f.topic));
 for (const [L, mix] of Object.entries(AGO_LEVELS.DAILY)) {
+  if (!mix) continue; // no daily quiz for this level (SPC)
   for (const [t] of mix.facts)
     if (!topics.has(t)) problems.push("DAILY." + L + " uses topic " + t + ", which has no questions");
   for (const [d] of mix.drills) if (!D[d]) problems.push("DAILY." + L + " uses drill " + d + ", which doesn't exist");
 }
 
-// every level links its AGO resources page
+// every level links its AGO resources page and says who may take it
+for (const L of AGO_LEVELS.LEVELS) if (!L.eligibility) problems.push(L.id + " has no eligibility");
 for (const L of AGO_LEVELS.LEVELS)
   if (!/^https:\/\//.test(L.agoPage || "")) problems.push(L.id + " has no agoPage link");
 

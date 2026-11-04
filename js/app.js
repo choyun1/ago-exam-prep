@@ -637,6 +637,7 @@
           h("div", {}, h("dt", {}, "Apply"), h("dd", {}, L.deadline)),
           h("div", {}, h("dt", {}, "Fee"), h("dd", {}, L.fee)),
           h("div", {}, h("dt", {}, "Pass"), h("dd", {}, L.pass)),
+          h("div", {}, h("dt", {}, "Eligibility"), h("dd", {}, L.eligibility)),
         ),
       ),
     );
@@ -830,11 +831,14 @@
   const VIEWS = { daily: viewDaily, exam: viewExam, plan: viewPlan };
   function route() {
     Audio.stop();
-    const v = (location.hash || "#daily").slice(1);
-    const view = VIEWS[v] ? v : "daily";
-    document
-      .querySelectorAll(".tabs a")
-      .forEach((a) => a.setAttribute("aria-current", a.getAttribute("href") === "#" + view ? "page" : "false"));
+    // levels with no written or ear section (SPC) have no daily quiz, so open their exam items instead
+    const hasQuiz = !!DAILY[level];
+    const v = (location.hash || (hasQuiz ? "#daily" : "#exam")).slice(1);
+    const view = VIEWS[v] && (v !== "daily" || hasQuiz) ? v : hasQuiz ? "daily" : "exam";
+    document.querySelectorAll(".tabs a").forEach((a) => {
+      a.setAttribute("aria-current", a.getAttribute("href") === "#" + view ? "page" : "false");
+      if (a.getAttribute("href") === "#daily") a.hidden = !hasQuiz;
+    });
     const main = $("#main");
     main.innerHTML = "";
     VIEWS[view](main);
