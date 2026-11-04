@@ -4,6 +4,14 @@ Practice for the American Guild of Organists certification exams: Service Playin
 
 Use it online at https://choyun1.github.io/ago-exam-prep/, or open `index.html` in a browser. There is no build step and no server.
 
+## Running it
+
+- **In a browser:** clone or download the repository and open `index.html`. Everything, including the abcjs score renderer in `vendor/`, is local, so it works offline.
+- **As one file:** `npm run build` writes `dist/ago-exam-prep.html`, which you can copy to a tablet or phone and open directly.
+- **On GitHub Pages:** in the repository's **Settings → Pages**, set the source to *Deploy from a branch*, branch `main`, folder `/ (root)`. GitHub publishes the site at `https://<user>.github.io/ago-exam-prep/` a minute or two after each push to `main`. No workflow or build is needed, because the site is the repository's static files.
+
+Progress (quiz history, streak, review schedule, chosen level) is kept in the browser's `localStorage` under keys starting `agoprep:`. It stays on that device and browser; clearing site data resets it.
+
 ## What it does
 
 - **Daily quiz:** 12 questions a day for the selected level, half from a curated bank of about 300 knowledge questions (chant, hymnody, liturgy, registration, organ history and repertoire, choral repertoire, orchestration) and half from generated drills (figured bass, intervals, C clefs, tonal answers, transposition keys, chant modes, orchestral transpositions, and ear training for cadences, chord qualities, and intervals with built-in organ-tone playback). Missed questions come back the next day; right answers space out to 3, 7, 16, 35, and 90 days. Reviews take at most half of a quiz's knowledge questions so new ones keep coming, no question repeats on the same day (extra rounds included), and look-alike questions (such as the reciting tones of two modes) never share a quiz. When nothing new or due is left, drills fill the gap. Progress is stored in your browser.
@@ -40,6 +48,7 @@ Fugue answers are computed from the subject: real answers move up a perfect 5th;
 `npm test` (Node 18 or later, nothing to install) runs:
 
 - `test/smoke.js`: every generator and drill runs for 25 seeds; every question has a valid answer and a source.
+- `test/quiz.js`: simulates four months of daily quizzes per level and checks that nothing repeats the same day, look-alike questions never share a quiz, a right answer never returns the next day, and the first month reaches most of the bank.
 - `test/check_voicing.js`: 200 voiced passages have no parallel 5ths or octaves.
 - `test/music.js`: every generated score has whole bars and no wrong double sharps or flats; every fugue answer keeps its subject's shape; decorated passages have no parallels on any eighth note and every suspension resolves down by step.
 
@@ -58,15 +67,18 @@ Fugue answers are computed from the subject: real answers move up a perfect 5th;
 | `js/quiz.js` | which knowledge questions go into a quiz, and spaced repetition |
 | `js/audio.js` | small additive organ synth (Web Audio) |
 | `js/app.js` | interface |
+| `vendor/abcjs-basic-min.js` | abcjs, renders ABC notation as scores |
+| `scripts/build-single.py` | single-file build |
+| `test/` | tests and the screenshot script |
 
-`npm run build` (or `python3 -I scripts/build-single.py`) writes `dist/ago-exam-prep.html`, a single self-contained file.
+`npm run build` (or `python3 -I scripts/build-single.py`) writes `dist/ago-exam-prep.html`, a single self-contained file. `dist/` is git-ignored.
 
-## Copyright note
+## Copyright note: never commit past exams
 
-Past AGO exams are copyrighted by the American Guild of Organists and are **not** included. Get them from agohq.org (Certification → Document Center). `.gitignore` excludes PDFs and a `past-exams/` folder so a local archive can't be committed by accident. All questions here are newly written.
+Past AGO exams and the AGO's PDFs are copyrighted by the American Guild of Organists. They are **not** included and must **never** be committed to this repository, not even in a branch or pull request, because git history keeps them after deletion. Get them from agohq.org (Certification → Document Center) and keep them outside the repository or in a local `past-exams/` folder. `.gitignore` excludes `*.pdf` and `past-exams/` so a local archive can't be added by accident; don't force-add around it. Every question and exercise here is newly written, and generated exercises follow the published requirements rather than copying exam papers.
 
 Not affiliated with or endorsed by the AGO. Always confirm requirements, dates, and fees at agohq.org.
 
 ## License
 
-MIT
+[MIT](LICENSE), © 2026 Adrian Cho. The bundled `vendor/abcjs-basic-min.js` is [abcjs](https://github.com/paulrosen/abcjs), also MIT-licensed. The license covers this code and the newly written questions, not AGO materials.

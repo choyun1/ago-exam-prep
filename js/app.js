@@ -42,17 +42,15 @@
     for (const c of kids.flat()) if (c != null) el.append(c.nodeType ? c : document.createTextNode(c));
     return el;
   };
-  const todayStr = () => {
-    const d = new Date();
-    return (
-      d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
-    );
-  };
+  const ymd = (d) =>
+    d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const todayStr = () => ymd(new Date());
   const daysBetween = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+  // local date in, local date out (toISOString would give the UTC date, a day off east of UTC+12, e.g. NZ summer)
   const addDays = (s, n) => {
     const d = new Date(s + "T12:00:00");
     d.setDate(d.getDate() + n);
-    return d.toISOString().slice(0, 10);
+    return ymd(d);
   };
   // citation line shown under every answer and exercise
   const cite = (label, text, extra) =>
