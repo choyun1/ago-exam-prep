@@ -541,6 +541,473 @@
     };
   };
 
+  // ---------- drills for the written and ear items (C9–C13, A8–A11, F7–F11) ----------
+  // a scale-degree note: d counts from the tonic (0 = ^1, -1 = ^7 below, 7 = ^1 an octave up), o = the tonic's octave.
+  // In minor, ^7 is raised (it is the leading tone of V in every pattern below).
+  function degN(key, d, o) {
+    const dd = ((d % 7) + 7) % 7;
+    const p = T.degreePC(key, dd, { raise7: true });
+    return { L: p.L, a: p.a, o: o + Math.floor(d / 7) + (key.t.L + dd >= 7 ? 1 : 0) };
+  }
+  const twoStaves = (key, upper, lower) =>
+    H.renderABC({
+      key,
+      meter: "4/4",
+      staves: [
+        { clef: "treble", voices: [{ id: "U", events: upper }] },
+        { clef: "bass", voices: [{ id: "L", events: lower }] },
+      ],
+    });
+  const audioOf = (key, lists, tempo) => Object.assign(Gen.audioFrom(lists, tempo || 76), { tonicKey: key });
+
+  // Non-chord tones over I – V: [degree, eighths, is the non-chord tone, tied to the next note]
+  const NCT = {
+    "Passing tone": {
+      mel: [
+        [2, 2],
+        [3, 2, 1],
+        [4, 4],
+      ],
+      why: "approached and left by step in the same direction",
+    },
+    "Neighbor tone": {
+      mel: [
+        [4, 2],
+        [5, 2, 1],
+        [4, 4],
+      ],
+      why: "steps away from a chord tone and back to the same note",
+    },
+    "Lower neighbor tone": {
+      mel: [
+        [4, 2],
+        [3, 2, 1],
+        [4, 4],
+      ],
+      why: "steps down from a chord tone and back up to it",
+    },
+    "Escape tone": {
+      mel: [
+        [0, 2],
+        [1, 2, 1],
+        [-1, 4],
+      ],
+      why: "left by leap in the opposite direction after a step",
+    },
+    Appoggiatura: {
+      mel: [
+        [2, 4],
+        [0, 2, 1],
+        [1, 2],
+      ],
+      why: "approached by leap on the strong beat and resolved by step",
+    },
+    Anticipation: {
+      mel: [
+        [2, 2],
+        [1, 2, 1],
+        [1, 4],
+      ],
+      why: "sounds a note of the next chord before the chord arrives",
+    },
+    Suspension: {
+      mel: [
+        [0, 4, 0, 1],
+        [0, 2, 1],
+        [-1, 2],
+      ],
+      why: "held over from the previous chord and resolved down by step",
+    },
+  };
+  D.nonChordTone = function (r) {
+    const key = Gen.randomKey(r, { maxAcc: 4, minorP: 0.35 });
+    const kind = r.pick(Object.keys(NCT));
+    const upper = NCT[kind].mel.map(([d, dur, nct, tie]) => ({
+      n: degN(key, d, 4),
+      dur,
+      tie: !!tie,
+      annAbove: nct ? "*" : undefined,
+    }));
+    const lower = [
+      { n: degN(key, 0, 3), dur: 4, ann: [key.mode === "minor" ? "i" : "I"] },
+      { n: degN(key, 4, 2), dur: 4, ann: ["V"] },
+    ];
+    return {
+      topic: "theory",
+      kind: "Non-chord tones",
+      q: "What kind of non-chord tone is the note marked * (" + T.keyShort(key) + ")?",
+      abc: twoStaves(key, upper, lower),
+      audio: audioOf(key, [lower, upper]),
+      ...mc(r, kind, Object.keys(NCT), 4),
+      explain: "A " + kind.toLowerCase() + " is " + NCT[kind].why + ".",
+    };
+  };
+
+  // Suspensions: the upper voice (or, for 2–3, the bass) is prepared, held against the new chord, and resolved.
+  // [upper notes, lower notes], each [degree, octave, eighths, tied]
+  const SUSP = {
+    "4–3": [
+      [
+        [0, 4, 4, 1],
+        [0, 4, 2],
+        [-1, 4, 2],
+      ],
+      [
+        [0, 3, 4],
+        [4, 2, 4],
+      ],
+    ],
+    "7–6": [
+      [
+        [0, 4, 4, 1],
+        [0, 4, 2],
+        [-1, 4, 2],
+      ],
+      [
+        [2, 3, 4],
+        [1, 3, 4],
+      ],
+    ],
+    "9–8": [
+      [
+        [1, 4, 4, 1],
+        [1, 4, 2],
+        [0, 4, 2],
+      ],
+      [
+        [4, 2, 4],
+        [0, 3, 4],
+      ],
+    ],
+    "2–3 (in the bass)": [
+      [
+        [0, 4, 4],
+        [3, 4, 4],
+      ],
+      [
+        [2, 3, 4, 1],
+        [2, 3, 2],
+        [1, 3, 2],
+      ],
+    ],
+  };
+  D.suspensionType = function (r) {
+    const key = Gen.randomKey(r, { maxAcc: 4, minorP: 0.35 });
+    const kind = r.pick(Object.keys(SUSP));
+    const ev = (list) => list.map(([d, o, dur, tie]) => ({ n: degN(key, d, o), dur, tie: !!tie }));
+    const [upper, lower] = SUSP[kind].map(ev);
+    return {
+      topic: "theory",
+      kind: "Suspensions",
+      q: "Listen and look. Which suspension is this (" + T.keyShort(key) + ")?",
+      abc: twoStaves(key, upper, lower),
+      audio: audioOf(key, [lower, upper], 66),
+      ...mc(r, kind, Object.keys(SUSP), 4),
+      explain:
+        kind === "2–3 (in the bass)"
+          ? "The bass is held while the upper voice moves to a 2nd (9th) above it, then the bass steps down to make a 3rd."
+          : "Count the interval between the held note and the bass, then the interval after it resolves down by step: " +
+            kind +
+            ".",
+    };
+  };
+
+  // Missing-tone dictation (CAGO C9): soprano and bass of a generated phrase, one note hidden.
+  D.missingTone = function (r) {
+    const key = Gen.randomKey(r, { maxAcc: 3, minorP: 0.3 });
+    const p = Gen.passage(r, key, [{ cadence: r.pick(["PAC", "HC", "IAC"]) }], "4/4");
+    const upper = p.chords.map((c, i) => ({ n: p.voicing[i][3], dur: c.dur }));
+    const lower = p.chords.map((c, i) => ({ n: p.voicing[i][0], dur: c.dur }));
+    const inBass = r.chance(0.5);
+    const line = inBass ? lower : upper;
+    const i = 1 + r.int(line.length - 2);
+    const n = line[i].n;
+    const audio = audioOf(key, [lower.map((e) => ({ ...e })), upper.map((e) => ({ ...e }))], 72);
+    line[i] = { n: null, dur: line[i].dur, annAbove: "?" }; // shown as a rest marked ?
+    // the diatonic notes around it, plus the same letter with the other accidental
+    const others = [-2, -1, 1, 2].map((st) => {
+      const x = T.fromDia(T.dia(n) + st, 0);
+      x.a = T.keySig(key)[x.L];
+      return T.name(x);
+    });
+    others.push(T.name({ L: n.L, a: n.a === 0 ? T.keySig(key)[n.L] || (r.chance(0.5) ? 1 : -1) : 0, o: n.o }));
+    return {
+      topic: "ear",
+      kind: "Ear: missing tones",
+      q: "Listen. Which note is missing at the ? in the " + (inBass ? "bass" : "soprano") + "?",
+      abc: twoStaves(key, upper, lower),
+      audio,
+      ...mc(r, T.name(n), others, 4),
+      explain:
+        "The missing note was " +
+        T.name(n) +
+        " (" +
+        p.chords[i].sym +
+        " in " +
+        T.keyShort(key) +
+        "). Sing the line by scale degree from the note before it.",
+    };
+  };
+
+  // Binary and ternary forms (CAGO C13, AAGO A8), described as a section/key/cadence chart.
+  const FORMS = {
+    "Sectional binary": "two repeated halves; the first ends on a PAC in the tonic, and the opening does not return",
+    "Continuous binary": "two repeated halves; the first ends away from the tonic (in a new key or on a half cadence)",
+    "Rounded binary": "the second half ends by bringing back the opening phrase in the tonic, shortened",
+    "Balanced binary": "the closing bars of the first half return at the end of the second half, now in the tonic",
+    "Ternary (ABA)": "a closed A section in the tonic, a contrasting B section, and a full return of A",
+  };
+  D.formType = function (r) {
+    const key = Gen.randomKey(r, { maxAcc: 4, minorP: 0.3 });
+    const I = T.keyShort(key);
+    const other = T.keyShort(key.mode === "minor" ? T.relMajor(key) : T.dominantKey(key));
+    const contrast = T.keyShort(
+      r.pick([T.subdominantKey(key), key.mode === "minor" ? T.relMajor(key) : T.relMinor(key)]),
+    );
+    const b = r.pick([8, 8, 12, 16]);
+    const form = r.pick(Object.keys(FORMS));
+    const rows = {
+      "Sectional binary": [
+        "||: A (" + b + " bars): " + I + ", ends with a PAC in " + I + " :||",
+        "||: B (" + b + " bars): new material, through " + other + ", ends with a PAC in " + I + " :||",
+      ],
+      "Continuous binary": [
+        "||: A (" + b + " bars): " + I + " → " + other + ", ends with a PAC in " + other + " :||",
+        "||: B (" + b + " bars): " + other + " → " + I + ", new material, ends with a PAC in " + I + " :||",
+      ],
+      "Rounded binary": [
+        "||: A (" + b + " bars): " + I + " → " + other + ", PAC in " + other + " :||",
+        "||: B (" +
+          b / 2 +
+          " bars) on a dominant pedal, then the first " +
+          b / 2 +
+          " bars of A in " +
+          I +
+          ", PAC in " +
+          I +
+          " :||",
+      ],
+      "Balanced binary": [
+        "||: A (" + b + " bars): " + I + " → " + other + "; last 4 bars are a closing figure, PAC in " + other + " :||",
+        "||: B (" +
+          (b + 4) +
+          " bars): new material back to " +
+          I +
+          "; ends with A's closing figure transposed to " +
+          I +
+          " :||",
+      ],
+      "Ternary (ABA)": [
+        "A (" + b + " bars): " + I + ", closes with a PAC in " + I,
+        "B (" + b + " bars): " + contrast + ", new theme and texture, ends on a half cadence (retransition)",
+        "A (" + b + " bars): the whole of A again, PAC in " + I,
+      ],
+    }[form];
+    return {
+      topic: "theory",
+      kind: "Form",
+      q: "Which form does this chart describe?\n" + rows.join("\n"),
+      ...mc(r, form, Object.keys(FORMS), 4),
+      explain: form + ": " + FORMS[form] + ".",
+    };
+  };
+
+  // Fugue analysis (CAGO C11, AAGO A9): the answer's key, or real vs tonal from the written answer.
+  D.fugueEntry = function (r) {
+    const sub = r.pick(Gen.SUBJECTS);
+    const key = Gen.randomKey(r, { mode: sub.mode, maxAcc: 3 });
+    const { subj, ans, tonal } = Gen.answerFor(sub, key);
+    const abc = H.renderABC({
+      key,
+      meter: "4/4",
+      staves: [
+        { clef: "treble", name: "Subject", voices: [{ id: "S", events: subj }] },
+        { clef: "treble", name: "Answer", voices: [{ id: "A", events: ans }] },
+      ],
+    });
+    if (r.chance(0.5)) {
+      const dk = T.dominantKey(key);
+      return {
+        topic: "fugue",
+        kind: "Fugue",
+        q: "The subject is in " + T.keyShort(key) + ". In which key does the answer enter?",
+        abc,
+        ...mc(
+          r,
+          T.keyShort(dk),
+          [
+            T.keyShort(T.subdominantKey(key)),
+            T.keyShort(key),
+            T.keyShort(key.mode === "minor" ? T.relMajor(key) : T.relMinor(key)),
+          ],
+          4,
+        ),
+        explain: "The answer enters in the dominant, " + T.keyShort(dk) + ", a 5th above (or 4th below) the tonic.",
+      };
+    }
+    return {
+      topic: "fugue",
+      kind: "Fugue",
+      q: "Is this answer real or tonal?",
+      abc,
+      ...mc(r, tonal ? "Tonal" : "Real", ["Tonal", "Real"], 2),
+      explain: tonal
+        ? "Some notes of the head are answered a 4th up instead of a 5th (^5 answered by ^1), so it is tonal."
+        : "Every note is a perfect 5th higher (or 4th lower), so it is a real answer.",
+    };
+  };
+
+  // First-species counterpoint (FAGO F7): is the move from bar 1 to bar 2 allowed?
+  const SPECIES = [
+    "Allowed",
+    "Parallel fifths",
+    "Parallel octaves",
+    "Similar motion into a perfect consonance",
+    "Dissonant interval",
+  ];
+  D.speciesMotion = function (r) {
+    const key = Gen.randomKey(r, { mode: "major", maxAcc: 3 });
+    const sig = T.keySig(key);
+    const at = (d) => {
+      const x = T.fromDia(d, 0);
+      x.a = sig[x.L];
+      return x;
+    };
+    const want = r.pick(SPECIES);
+    const kindOf = (lo, hi) => {
+      const s = (((T.midi(hi) - T.midi(lo)) % 12) + 12) % 12;
+      if (s === 0) return "P8";
+      if (s === 7) return "P5";
+      if ([3, 4, 8, 9].includes(s)) return "imp";
+      return "dis";
+    };
+    for (let tries = 0; tries < 400; tries++) {
+      const l1 = at(T.dia({ ...key.t, o: 3 }) + r.int(5));
+      const l2 = at(T.dia(l1) + r.pick([-2, -1, 1, 2]));
+      const u1 = at(T.dia(l1) + r.pick([2, 4, 5, 7, 9]));
+      const u2 = at(T.dia(l2) + r.pick([2, 3, 4, 5, 6, 7, 9, 11]));
+      const k1 = kindOf(l1, u1),
+        k2 = kindOf(l2, u2);
+      if (k1 === "dis") continue;
+      const m1 = Math.sign(T.midi(l2) - T.midi(l1)),
+        m2 = Math.sign(T.midi(u2) - T.midi(u1));
+      const similar = m1 !== 0 && m1 === m2;
+      const got =
+        k2 === "dis"
+          ? "Dissonant interval"
+          : similar && k1 === "P5" && k2 === "P5"
+            ? "Parallel fifths"
+            : similar && k1 === "P8" && k2 === "P8"
+              ? "Parallel octaves"
+              : similar && (k2 === "P5" || k2 === "P8")
+                ? "Similar motion into a perfect consonance"
+                : "Allowed";
+      if (got !== want) continue;
+      return {
+        topic: "counterpoint",
+        kind: "Species counterpoint",
+        q: "First species, " + T.keyShort(key) + ": is the move from the first to the second interval allowed?",
+        abc: twoStaves(
+          key,
+          [
+            { n: u1, dur: 8 },
+            { n: u2, dur: 8 },
+          ],
+          [
+            { n: l1, dur: 8 },
+            { n: l2, dur: 8 },
+          ],
+        ),
+        audio: audioOf(
+          key,
+          [
+            [
+              { n: l1, dur: 8 },
+              { n: l2, dur: 8 },
+            ],
+            [
+              { n: u1, dur: 8 },
+              { n: u2, dur: 8 },
+            ],
+          ],
+          60,
+        ),
+        ...mc(r, want, SPECIES, 4),
+        explain:
+          want === "Allowed"
+            ? "Both intervals are consonant and the move breaks no rule of first species."
+            : want === "Dissonant interval"
+              ? "First species uses only consonances (unison, 3rds, perfect 5th, 6ths, octave); the second interval is dissonant."
+              : want === "Similar motion into a perfect consonance"
+                ? "A perfect 5th or octave may be approached only by contrary or oblique motion (a hidden or direct " +
+                  (k2 === "P5" ? "5th" : "octave") +
+                  ")."
+                : "Two perfect " +
+                  (want === "Parallel fifths" ? "5ths" : "octaves") +
+                  " in a row in similar motion are forbidden.",
+      };
+    }
+    throw new Error("no species example for " + want);
+  };
+
+  // Lowest sounding notes (Adler, The Study of Orchestration)
+  const RANGE = [
+    ["Flute", { L: 0, a: 0, o: 4 }],
+    ["Oboe", { L: 6, a: -1, o: 3 }],
+    ["Clarinet in B♭", { L: 1, a: 0, o: 3 }],
+    ["Bassoon", { L: 6, a: -1, o: 1 }],
+    ["Trumpet in B♭", { L: 2, a: 0, o: 3 }],
+    ["Tenor trombone", { L: 2, a: 0, o: 2 }],
+    ["Violin", { L: 4, a: 0, o: 3 }],
+    ["Viola", { L: 0, a: 0, o: 3 }],
+    ["Cello", { L: 0, a: 0, o: 2 }],
+    ["Double bass", { L: 2, a: 0, o: 1 }],
+  ];
+  D.instrumentRange = function (r) {
+    if (r.chance(0.5)) {
+      const [inst, low] = r.pick(RANGE);
+      return {
+        topic: "orchestration",
+        kind: "Orchestration",
+        q: "What is the lowest sounding note of the " + inst.toLowerCase() + " (standard range)?",
+        ...mc(
+          r,
+          T.name(low, true),
+          RANGE.map((x) => T.name(x[1], true)),
+          4,
+        ),
+        explain: "The " + inst.toLowerCase() + " goes down to " + T.name(low, true) + " (middle C = C4).",
+      };
+    }
+    for (;;) {
+      const n = r.pick(RANGE)[1];
+      const cant = RANGE.filter((x) => T.midi(x[1]) > T.midi(n));
+      const can = RANGE.filter((x) => T.midi(x[1]) <= T.midi(n));
+      if (!cant.length || can.length < 3) continue;
+      const [inst, low] = r.pick(cant);
+      return {
+        topic: "orchestration",
+        kind: "Orchestration",
+        q: "Which of these instruments cannot play this sounding pitch?",
+        abc: oneNote(T.mkKey("C", 0, "major"), n, T.midi(n) < 60 ? "bass" : "treble"),
+        ...mc(
+          r,
+          inst,
+          can.map((x) => x[0]),
+          4,
+        ),
+        explain:
+          "The note is " +
+          T.name(n, true) +
+          "; the " +
+          inst.toLowerCase() +
+          " goes down only to " +
+          T.name(low, true) +
+          ".",
+      };
+    }
+  };
+
   // Where each drill's answer comes from (the rule it applies) and which 2027 exam items it supports.
   const KPA = "Kostka, Payne & Almén, Tonal Harmony (8th ed., 2018)";
   const SRC = {
@@ -584,6 +1051,31 @@
     earCadence: { rule: KPA + ", cadences", items: "CAGO C10; AAGO A11 (aural perception)" },
     earChord: { rule: KPA + ", triads and seventh chords", items: "CAGO C10; AAGO A11; ChM Ch3 (aural tests)" },
     earInterval: { rule: KPA + ", intervals", items: "CAGO C9; AAGO A10; FAGO F10 (dictation)" },
+    nonChordTone: {
+      rule: KPA + ", non-chord tones (passing, neighbor, appoggiatura, escape, anticipation, suspension)",
+      items: "CAGO C10, C13; AAGO A8, A11 (analysis, aural perception)",
+    },
+    suspensionType: {
+      rule: KPA + ", suspensions (4–3, 7–6, 9–8, 2–3)",
+      items: "AAGO A8, A11 (analysis; aural perception asks the suspension type)",
+    },
+    missingTone: { rule: KPA + ", melodic and two-part dictation", items: "CAGO C9; AAGO A10 (two-part dictation)" },
+    formType: {
+      rule: KPA + ", binary and ternary forms; William E. Caplin, Classical Form (1998)",
+      items: "CAGO C13; AAGO A8 (composition analysis)",
+    },
+    fugueEntry: {
+      rule: "Robert Gauldin, A Practical Approach to 18th-Century Counterpoint (1988), the fugal exposition",
+      items: "CAGO C11; AAGO A9; FAGO F8 (fugue)",
+    },
+    speciesMotion: {
+      rule: "Knud Jeppesen, Counterpoint (1939), first species; Fux, Gradus ad Parnassum (1725)",
+      items: "FAGO F7 (16th-century counterpoint)",
+    },
+    instrumentRange: {
+      rule: "Samuel Adler, The Study of Orchestration (4th ed., 2016), instrument ranges",
+      items: "FAGO F11 (orchestration)",
+    },
   };
   for (const k of Object.keys(SRC)) {
     const f = D[k];

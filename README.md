@@ -16,7 +16,15 @@ Progress (quiz history, streak, review schedule, chosen level) is kept in the br
 
 ## What it does
 
-- **Daily quiz:** 12 questions a day for the selected level, half from a curated bank of about 300 knowledge questions (chant, hymnody, liturgy, registration, organ history and repertoire, choral repertoire, orchestration) and half from generated drills (figured bass, intervals, C clefs, tonal answers, transposition keys, chant modes, orchestral transpositions, and ear training for cadences, chord qualities, and intervals with built-in organ-tone playback). Missed questions come back the next day; right answers space out to 3, 7, 16, 35, and 90 days. Reviews take at most half of a quiz's knowledge questions so new ones keep coming, no question repeats on the same day (extra rounds included), and look-alike questions (such as the reciting tones of two modes) never share a quiz. When nothing new or due is left, drills fill the gap. Progress is stored in your browser.
+- **Daily quiz:** 12 questions a day, built only from the selected exam's written and ear items, so each level gets a different quiz. Up to half are knowledge questions from a curated bank of about 300 where the exam asks for them (mainly ChM; registration and repertoire for AAGO A11; counterpoint and orchestration for FAGO; theory and fugue for CAGO). The rest are generated drills with built-in organ-tone playback:
+  - **CAGO (C9–C13):** missing-tone two-part dictation, cadences, chord qualities, non-chord tones, fugue answers and entry keys, figured bass, and binary/ternary form charts.
+  - **AAGO (A8–A12):** suspension types (4–3, 7–6, 9–8, 2–3), non-chord tones, forms, fugue answers, missing-tone dictation, ear tests, and mutation-stop pitches.
+  - **ChM:** chant modes and ear tests alongside the knowledge bank.
+  - **FAGO (F7–F12):** first-species motion (parallels, direct 5ths and octaves, dissonance), fugue answers, dictation, orchestral transpositions, and instrument ranges.
+  - **SPC** has no daily quiz, because the whole exam is played at the console.
+
+  Missed questions come back the next day; right answers space out to 3, 7, 16, 35, and 90 days. Reviews take at most half of a quiz's knowledge questions so new ones keep coming, no question repeats on the same day (extra rounds included), and look-alike questions (such as the reciting tones of two modes) never share a quiz. When nothing new or due is left, drills fill the gap. Progress is stored in your browser.
+
 - **Exam items:** every item of every exam with points, format, and study advice. Items that can be generated produce a new exercise each time, with a solution: open-score and trio sight-reading, transposition, figured-bass realization, melody/unfigured-bass harmonization, progressions, dictation with audio, error detection, fugue subjects with computed tonal or real answers, ground basses, modulating-phrase and ternary improvisation themes, cantus firmi, analysis assignments, essay and orchestration prompts, and ChM rehearsal scenarios. "Generate a full mock exam" fills every item at once.
 - **Study plan:** a phased timeline from today to the exam date, a weekly rotation of keyboard skills, and the AGO's 2027 resource list.
 
@@ -25,7 +33,7 @@ Progress (quiz history, streak, review schedule, chosen level) is kept in the br
 Every question and exercise shows where its answer comes from.
 
 - **Knowledge questions** (`js/facts.js`) each carry a `src`: a standard reference that supports the answer, usually a Grove Music Online article, the Canterbury Dictionary of Hymnology, the Book of Common Prayer, Stevens Irwin's _Dictionary of Pipe Organ Stops_, Douglass's _Language of the Classical French Organ_, Adler's _Study of Orchestration_, or a standard harmony or counterpoint text. Citations are to the article or entry, not a page.
-- **Daily drills** (`js/drills.js`) cite the rule they apply and the 2027 exam items they train.
+- **Daily drills** (`js/drills.js`) cite the rule they apply and the 2027 exam items they train. `DAILY` in `js/levels.js` sets which drills and topics each level's quiz uses.
 - **Generated exercises** (`js/generators.js`) cite the exam item they follow in the _AGO Professional Certification Requirements for 2027_ (The American Organist, July 2026) and the voice-leading or counterpoint rules the generator enforces.
 
 `test/smoke.js` fails if a question, drill, or generator has no citation.

@@ -125,11 +125,15 @@
     // SPC is played entirely at the console (S1–S10): no written or ear section, so no daily quiz.
     SPC: null,
     // CAGO's written section (C9–C13) is ear tests, fugue analysis, continuo, and form analysis: no general-knowledge questions.
-    CAGO: { facts: [["theory", 2], ["fugue", 2]], drills: [["figuredToRoman", 3], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 1], ["earInterval", 1], ["interval", 1], ["transposeKey", 2], ["keyRelations", 1]],
+    CAGO: { facts: [["theory", 2], ["fugue", 2]], drills: [["missingTone", 3], ["earInterval", 1], ["earCadence", 2], ["earChord", 1], ["nonChordTone", 2], ["tonalAnswer", 1], ["fugueEntry", 2], ["figuredToRoman", 3], ["formType", 2]],
       note: "The CAGO written section (2 hours) covers dictation, aural perception, fugue analysis, continuo, and form analysis only, so this quiz sticks to those skills." },
-    AAGO: { facts: [["registration", 3], ["organ-rep", 3], ["organ-history", 2], ["theory", 1], ["fugue", 1], ["performance", 1]], drills: [["figuredToRoman", 3], ["tonalAnswer", 2], ["earCadence", 2], ["earChord", 2], ["earInterval", 1], ["transposeKey", 2], ["mutation", 1], ["clefReading", 1]] },
+    // AAGO's written and ear items are A8–A12; A11 asks about registration, composer and nationality, so those topics stay.
+    AAGO: { facts: [["registration", 3], ["organ-rep", 2], ["theory", 1], ["fugue", 1]], drills: [["formType", 1], ["nonChordTone", 2], ["suspensionType", 3], ["tonalAnswer", 1], ["fugueEntry", 2], ["missingTone", 2], ["earInterval", 1], ["earCadence", 1], ["earChord", 1], ["mutation", 1], ["figuredToRoman", 1]],
+      note: "Built from the written and ear items (A8–A12): analysis, fugue, dictation, and aural perception, including registration and repertoire questions." },
     ChM: { facts: [["chant", 3], ["hymnody", 3], ["liturgy", 3], ["choir", 2], ["choral-rep", 3], ["history", 1]], drills: [["chantMode", 3], ["earCadence", 1], ["earChord", 1], ["figuredToRoman", 1], ["keyRelations", 1]] },
-    FAGO: { facts: [["orchestration", 2], ["counterpoint", 2], ["organ-history", 2], ["organ-rep", 2], ["registration", 1], ["history", 1]], drills: [["orchestral", 3], ["clefReading", 3], ["tonalAnswer", 2], ["earChord", 2], ["figuredToRoman", 1], ["chantMode", 1]] }
+    // FAGO's written and ear items are F7–F12: counterpoint, fugue, essay, dictation, orchestration, composition.
+    FAGO: { facts: [["orchestration", 2], ["counterpoint", 2]], drills: [["speciesMotion", 3], ["tonalAnswer", 1], ["fugueEntry", 1], ["earChord", 1], ["earInterval", 1], ["missingTone", 1], ["orchestral", 2], ["instrumentRange", 2], ["suspensionType", 1]],
+      note: "Built from the written and ear items (F7–F12): counterpoint, fugue, dictation, and orchestration." },
   };
 
   const RESOURCES = {
