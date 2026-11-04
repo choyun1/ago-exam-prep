@@ -8,7 +8,7 @@ Use it online at https://choyun1.github.io/ago-exam-prep/, or open `index.html` 
 
 - **In a browser:** clone or download the repository and open `index.html`. Everything, including the abcjs score renderer in `vendor/`, is local, so it works offline.
 - **As one file:** `npm run build` writes `dist/ago-exam-prep.html`, which you can copy to a tablet or phone and open directly.
-- **On GitHub Pages:** in the repository's **Settings → Pages**, set the source to *Deploy from a branch*, branch `main`, folder `/ (root)`. GitHub publishes the site at `https://<user>.github.io/ago-exam-prep/` a minute or two after each push to `main`. No workflow or build is needed, because the site is the repository's static files.
+- **On GitHub Pages:** in the repository's **Settings → Pages**, set the source to _Deploy from a branch_, branch `main`, folder `/ (root)`. GitHub publishes the site at `https://<user>.github.io/ago-exam-prep/` a minute or two after each push to `main`. No workflow or build is needed, because the site is the repository's static files.
 
 Progress (quiz history, streak, review schedule, chosen level) is kept in the browser's `localStorage` under keys starting `agoprep:`. It stays on that device and browser; clearing site data resets it.
 
@@ -22,9 +22,9 @@ Progress (quiz history, streak, review schedule, chosen level) is kept in the br
 
 Every question and exercise shows where its answer comes from.
 
-- **Knowledge questions** (`js/facts.js`) each carry a `src`: a standard reference that supports the answer, usually a Grove Music Online article, the Canterbury Dictionary of Hymnology, the Book of Common Prayer, Stevens Irwin's *Dictionary of Pipe Organ Stops*, Douglass's *Language of the Classical French Organ*, Adler's *Study of Orchestration*, or a standard harmony or counterpoint text. Citations are to the article or entry, not a page.
+- **Knowledge questions** (`js/facts.js`) each carry a `src`: a standard reference that supports the answer, usually a Grove Music Online article, the Canterbury Dictionary of Hymnology, the Book of Common Prayer, Stevens Irwin's _Dictionary of Pipe Organ Stops_, Douglass's _Language of the Classical French Organ_, Adler's _Study of Orchestration_, or a standard harmony or counterpoint text. Citations are to the article or entry, not a page.
 - **Daily drills** (`js/drills.js`) cite the rule they apply and the 2027 exam items they train.
-- **Generated exercises** (`js/generators.js`) cite the exam item they follow in the *AGO Professional Certification Requirements for 2027* (The American Organist, July 2026) and the voice-leading or counterpoint rules the generator enforces.
+- **Generated exercises** (`js/generators.js`) cite the exam item they follow in the _AGO Professional Certification Requirements for 2027_ (The American Organist, July 2026) and the voice-leading or counterpoint rules the generator enforces.
 
 `test/smoke.js` fails if a question, drill, or generator has no citation.
 
@@ -56,20 +56,20 @@ Fugue answers are computed from the subject: real answers move up a perfect 5th;
 
 ## Files
 
-| Path | Contents |
-|---|---|
-| `js/theory.js` | pitches, keys, intervals, chord spelling, seeded RNG |
-| `js/harmony.js` | progression grammar, SATB voicing, figured bass, ABC output |
-| `js/generators.js` | exam-item exercise generators |
-| `js/drills.js` | auto-graded daily drills |
-| `js/levels.js` | 2027 requirements, study advice, daily mix per level |
-| `js/facts.js` | the knowledge-question bank (original wording) |
-| `js/quiz.js` | which knowledge questions go into a quiz, and spaced repetition |
-| `js/audio.js` | small additive organ synth (Web Audio) |
-| `js/app.js` | interface |
-| `vendor/abcjs-basic-min.js` | abcjs, renders ABC notation as scores |
-| `scripts/build-single.py` | single-file build |
-| `test/` | tests and the screenshot script |
+| Path                        | Contents                                                        |
+| --------------------------- | --------------------------------------------------------------- |
+| `js/theory.js`              | pitches, keys, intervals, chord spelling, seeded RNG            |
+| `js/harmony.js`             | progression grammar, SATB voicing, figured bass, ABC output     |
+| `js/generators.js`          | exam-item exercise generators                                   |
+| `js/drills.js`              | auto-graded daily drills                                        |
+| `js/levels.js`              | 2027 requirements, study advice, daily mix per level            |
+| `js/facts.js`               | the knowledge-question bank (original wording)                  |
+| `js/quiz.js`                | which knowledge questions go into a quiz, and spaced repetition |
+| `js/audio.js`               | small additive organ synth (Web Audio)                          |
+| `js/app.js`                 | interface                                                       |
+| `vendor/abcjs-basic-min.js` | abcjs, renders ABC notation as scores                           |
+| `scripts/build-single.py`   | single-file build                                               |
+| `test/`                     | tests and the screenshot script                                 |
 
 `npm run build` (or `python3 -I scripts/build-single.py`) writes `dist/ago-exam-prep.html`, a single self-contained file. `dist/` is git-ignored.
 
