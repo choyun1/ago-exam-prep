@@ -284,7 +284,7 @@
     });
   }
 
-  // Roman numeral catalogue. deg = root scale degree; q = quality per mode; inv: 0 root,1,2,3
+  // Roman numeral catalog. deg = root scale degree; q = quality per mode; inv: 0 root,1,2,3
   // sec: secondary-of degree (e.g. V/V -> sec 4)
   function chordSpec(k, sym) {
     // sym like "I","I6","I64","ii6","V7","V65","V43","V42","vii°6","vii°7","V/V","V7/V","V65/V","viio65"
